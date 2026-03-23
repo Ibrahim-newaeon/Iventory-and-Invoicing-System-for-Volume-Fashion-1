@@ -21,10 +21,14 @@ export default function UserManagement() {
     email: '',
     firstName: '',
     lastName: '',
+    password: '',
     role: 'Viewer'
   });
+  const [editingUser, setEditingUser] = useState<any>(null);
+  const [resetPasswordUser, setResetPasswordUser] = useState<any>(null);
+  const [newPassword, setNewPassword] = useState('');
 
-  const { data: users, isLoading, error } = useQuery({
+  const { data: users, isLoading, error } = useQuery<any>({
     queryKey: ["/api/users"],
   });
 
@@ -48,7 +52,7 @@ export default function UserManagement() {
           variant: "destructive",
         });
         setTimeout(() => {
-          window.location.href = "/api/login";
+          window.location.href = "/";
         }, 500);
         return;
       }
@@ -72,7 +76,7 @@ export default function UserManagement() {
       });
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
       setIsAddUserOpen(false);
-      setNewUser({ email: '', firstName: '', lastName: '', role: 'Viewer' });
+      setNewUser({ email: '', firstName: '', lastName: '', password: '', role: 'Viewer' });
     },
     onError: (error) => {
       if (isUnauthorizedError(error)) {
@@ -82,7 +86,7 @@ export default function UserManagement() {
           variant: "destructive",
         });
         setTimeout(() => {
-          window.location.href = "/api/login";
+          window.location.href = "/";
         }, 500);
         return;
       }
@@ -91,6 +95,46 @@ export default function UserManagement() {
         description: "Failed to create user",
         variant: "destructive",
       });
+    },
+  });
+
+  const editUserMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+      const response = await apiRequest("PUT", `/api/users/${id}`, data);
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Success", description: "User updated successfully" });
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      setEditingUser(null);
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error)) {
+        toast({ title: "Unauthorized", description: "You are logged out. Logging in again...", variant: "destructive" });
+        setTimeout(() => { window.location.href = "/"; }, 500);
+        return;
+      }
+      toast({ title: "Error", description: "Failed to update user", variant: "destructive" });
+    },
+  });
+
+  const resetPasswordMutation = useMutation({
+    mutationFn: async ({ id, password }: { id: string; password: string }) => {
+      const response = await apiRequest("PUT", `/api/users/${id}/password`, { password });
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Success", description: "Password reset successfully" });
+      setResetPasswordUser(null);
+      setNewPassword('');
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error)) {
+        toast({ title: "Unauthorized", description: "You are logged out. Logging in again...", variant: "destructive" });
+        setTimeout(() => { window.location.href = "/"; }, 500);
+        return;
+      }
+      toast({ title: "Error", description: "Failed to reset password", variant: "destructive" });
     },
   });
 
@@ -114,7 +158,7 @@ export default function UserManagement() {
           variant: "destructive",
         });
         setTimeout(() => {
-          window.location.href = "/api/login";
+          window.location.href = "/";
         }, 500);
         return;
       }
@@ -236,6 +280,17 @@ export default function UserManagement() {
                 />
               </div>
               <div className="space-y-2">
+                <Label htmlFor="password">Password *</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="Minimum 6 characters"
+                  value={newUser.password}
+                  onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                  data-testid="input-user-password"
+                />
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="role">Role</Label>
                 <Select value={newUser.role} onValueChange={(role) => setNewUser({ ...newUser, role })}>
                   <SelectTrigger data-testid="select-user-role">
@@ -254,7 +309,7 @@ export default function UserManagement() {
                   variant="outline"
                   onClick={() => {
                     setIsAddUserOpen(false);
-                    setNewUser({ email: '', firstName: '', lastName: '', role: 'Viewer' });
+                    setNewUser({ email: '', firstName: '', lastName: '', password: '', role: 'Viewer' });
                   }}
                   data-testid="button-cancel-add-user"
                 >
@@ -262,7 +317,7 @@ export default function UserManagement() {
                 </Button>
                 <Button
                   onClick={() => createUserMutation.mutate(newUser)}
-                  disabled={!newUser.email || createUserMutation.isPending}
+                  disabled={!newUser.email || !newUser.password || newUser.password.length < 6 || createUserMutation.isPending}
                   data-testid="button-create-user"
                 >
                   {createUserMutation.isPending ? "Creating..." : "Create User"}
@@ -364,17 +419,19 @@ export default function UserManagement() {
                         {formatTimeAgo(user.lastLoginAt)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm space-x-2">
-                        <Button 
-                          variant="ghost" 
+                        <Button
+                          variant="ghost"
                           size="icon"
+                          onClick={() => setEditingUser(user)}
                           data-testid={`button-edit-${user.id}`}
                         >
                           <i className="fas fa-edit w-4 h-4"></i>
                         </Button>
-                        
-                        <Button 
-                          variant="ghost" 
+
+                        <Button
+                          variant="ghost"
                           size="icon"
+                          onClick={() => { setResetPasswordUser(user); setNewPassword(''); }}
                           data-testid={`button-reset-password-${user.id}`}
                         >
                           <i className="fas fa-key w-4 h-4"></i>
@@ -465,6 +522,82 @@ export default function UserManagement() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Edit User Dialog */}
+      <Dialog open={!!editingUser} onOpenChange={(open) => !open && setEditingUser(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit User</DialogTitle>
+          </DialogHeader>
+          {editingUser && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Email</Label>
+                <Input
+                  type="email"
+                  value={editingUser.email || ''}
+                  onChange={(e) => setEditingUser({ ...editingUser, email: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>First Name</Label>
+                <Input
+                  value={editingUser.firstName || ''}
+                  onChange={(e) => setEditingUser({ ...editingUser, firstName: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Last Name</Label>
+                <Input
+                  value={editingUser.lastName || ''}
+                  onChange={(e) => setEditingUser({ ...editingUser, lastName: e.target.value })}
+                />
+              </div>
+              <div className="flex justify-end space-x-2 pt-4">
+                <Button variant="outline" onClick={() => setEditingUser(null)}>Cancel</Button>
+                <Button
+                  onClick={() => editUserMutation.mutate({
+                    id: editingUser.id,
+                    data: { firstName: editingUser.firstName, lastName: editingUser.lastName, email: editingUser.email }
+                  })}
+                  disabled={editUserMutation.isPending}
+                >
+                  {editUserMutation.isPending ? "Saving..." : "Save Changes"}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Reset Password Dialog */}
+      <Dialog open={!!resetPasswordUser} onOpenChange={(open) => !open && setResetPasswordUser(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reset Password for {resetPasswordUser?.email}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>New Password</Label>
+              <Input
+                type="password"
+                placeholder="Minimum 6 characters"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+              />
+            </div>
+            <div className="flex justify-end space-x-2 pt-4">
+              <Button variant="outline" onClick={() => setResetPasswordUser(null)}>Cancel</Button>
+              <Button
+                onClick={() => resetPasswordMutation.mutate({ id: resetPasswordUser.id, password: newPassword })}
+                disabled={newPassword.length < 6 || resetPasswordMutation.isPending}
+              >
+                {resetPasswordMutation.isPending ? "Resetting..." : "Reset Password"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

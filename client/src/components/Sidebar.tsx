@@ -14,6 +14,8 @@ const navigationItems = [
   { id: "bulk-upload", path: "/bulk-upload", icon: "fas fa-upload", label: "Bulk Upload", roles: ["Admin", "Manager"] },
   { id: "invoices", path: "/invoices", icon: "fas fa-file-invoice", label: "Invoices", roles: ["Admin", "Manager", "Staff", "Viewer"] },
   { id: "create-invoice", path: "/create-invoice", icon: "fas fa-plus-circle", label: "Create Invoice", roles: ["Admin", "Manager", "Staff"] },
+  { id: "customers", path: "/customers", icon: "fas fa-address-book", label: "Customers", roles: ["Admin", "Manager", "Staff"] },
+  { id: "reports", path: "/reports", icon: "fas fa-chart-bar", label: "Reports", roles: ["Admin", "Manager"] },
   { id: "users", path: "/users", icon: "fas fa-users", label: "User Management", roles: ["Admin"] },
   { id: "activity-logs", path: "/activity-logs", icon: "fas fa-history", label: "Activity Logs", roles: ["Admin", "Manager"] },
 ];
@@ -22,8 +24,13 @@ export default function Sidebar({ currentPage, onClose }: SidebarProps) {
   const { user } = useAuth();
   const [, navigate] = useLocation();
 
-  const handleLogout = () => {
-    window.location.href = '/api/logout';
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+    } catch {
+      // Logout even if request fails
+    }
+    window.location.href = '/';
   };
 
   const userInitials = user?.firstName && user?.lastName 

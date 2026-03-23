@@ -31,7 +31,7 @@ export default function Landing() {
             
             <div className="space-y-4">
               <Button
-                onClick={() => window.location.href = '/api/login'}
+                onClick={() => window.location.href = '/login'}
                 className="w-full"
                 data-testid="button-login"
               >

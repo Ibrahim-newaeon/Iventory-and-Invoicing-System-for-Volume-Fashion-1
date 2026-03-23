@@ -14,7 +14,7 @@ import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// Session storage table for Replit Auth
+// Session storage table
 export const sessions = pgTable(
   "sessions",
   {
@@ -49,6 +49,19 @@ export const passwordResetTokens = pgTable("password_reset_tokens", {
   expiresAt: timestamp("expires_at").notNull(),
   usedAt: timestamp("used_at"),
   createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_password_reset_tokens_token_hash").on(table.tokenHash),
+]);
+
+// Customers table
+export const customers = pgTable("customers", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name").notNull(),
+  email: varchar("email"),
+  phone: varchar("phone"),
+  address: text("address"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // Products table
@@ -69,7 +82,11 @@ export const products = pgTable("products", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
   createdBy: varchar("created_by").references(() => users.id),
-});
+}, (table) => [
+  index("idx_products_product_id").on(table.productId),
+  index("idx_products_category").on(table.category),
+  index("idx_products_is_active").on(table.isActive),
+]);
 
 // Invoices table
 export const invoices = pgTable("invoices", {
@@ -79,7 +96,9 @@ export const invoices = pgTable("invoices", {
   customerEmail: varchar("customer_email"),
   customerPhone: varchar("customer_phone").notNull(),
   customerAddress: text("customer_address"),
-  status: varchar("status", { enum: ["Pending", "Processed"] }).default("Pending"),
+  customerId: varchar("customer_id").references(() => customers.id),
+  status: varchar("status", { enum: ["Pending", "Processed", "Cancelled"] }).default("Pending"),
+  currency: varchar("currency", { length: 3 }).default("USD"),
   subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
   discountPercentage: decimal("discount_percentage", { precision: 5, scale: 4 }).default("0.00"),
   discountAmount: decimal("discount_amount", { precision: 10, scale: 2 }).default("0.00"),
@@ -93,7 +112,11 @@ export const invoices = pgTable("invoices", {
   createdBy: varchar("created_by").references(() => users.id),
   processedBy: varchar("processed_by").references(() => users.id),
   processedAt: timestamp("processed_at"),
-});
+}, (table) => [
+  index("idx_invoices_status").on(table.status),
+  index("idx_invoices_customer_name").on(table.customerName),
+  index("idx_invoices_created_at").on(table.createdAt),
+]);
 
 // Invoice items table
 export const invoiceItems = pgTable("invoice_items", {
@@ -118,6 +141,32 @@ export const activityLogs = pgTable("activity_logs", {
   ipAddress: varchar("ip_address"),
   userAgent: text("user_agent"),
   createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_activity_logs_module").on(table.module),
+  index("idx_activity_logs_user_id").on(table.userId),
+  index("idx_activity_logs_created_at").on(table.createdAt),
+]);
+
+// Stock adjustments table
+export const stockAdjustments = pgTable("stock_adjustments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  productId: varchar("product_id").notNull().references(() => products.id),
+  quantity: integer("quantity").notNull(),
+  type: varchar("type", { enum: ["in", "out"] }).notNull(),
+  reason: text("reason"),
+  adjustedBy: varchar("adjusted_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Product changes table (edit history)
+export const productChanges = pgTable("product_changes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  productId: varchar("product_id").notNull().references(() => products.id),
+  field: varchar("field").notNull(),
+  oldValue: text("old_value"),
+  newValue: text("new_value"),
+  changedBy: varchar("changed_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 // Relations
@@ -136,12 +185,18 @@ export const passwordResetTokensRelations = relations(passwordResetTokens, ({ on
   }),
 }));
 
+export const customersRelations = relations(customers, ({ many }) => ({
+  invoices: many(invoices),
+}));
+
 export const productsRelations = relations(products, ({ one, many }) => ({
   createdBy: one(users, {
     fields: [products.createdBy],
     references: [users.id],
   }),
   invoiceItems: many(invoiceItems),
+  stockAdjustments: many(stockAdjustments),
+  changes: many(productChanges),
 }));
 
 export const invoicesRelations = relations(invoices, ({ one, many }) => ({
@@ -152,6 +207,10 @@ export const invoicesRelations = relations(invoices, ({ one, many }) => ({
   processedBy: one(users, {
     fields: [invoices.processedBy],
     references: [users.id],
+  }),
+  customer: one(customers, {
+    fields: [invoices.customerId],
+    references: [customers.id],
   }),
   items: many(invoiceItems),
 }));
@@ -170,6 +229,28 @@ export const invoiceItemsRelations = relations(invoiceItems, ({ one }) => ({
 export const activityLogsRelations = relations(activityLogs, ({ one }) => ({
   user: one(users, {
     fields: [activityLogs.userId],
+    references: [users.id],
+  }),
+}));
+
+export const stockAdjustmentsRelations = relations(stockAdjustments, ({ one }) => ({
+  product: one(products, {
+    fields: [stockAdjustments.productId],
+    references: [products.id],
+  }),
+  adjustedBy: one(users, {
+    fields: [stockAdjustments.adjustedBy],
+    references: [users.id],
+  }),
+}));
+
+export const productChangesRelations = relations(productChanges, ({ one }) => ({
+  product: one(products, {
+    fields: [productChanges.productId],
+    references: [products.id],
+  }),
+  changedBy: one(users, {
+    fields: [productChanges.changedBy],
     references: [users.id],
   }),
 }));
@@ -213,6 +294,43 @@ export const insertPasswordResetTokenSchema = createInsertSchema(passwordResetTo
   createdAt: true,
 });
 
+export const insertCustomerSchema = createInsertSchema(customers).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertStockAdjustmentSchema = createInsertSchema(stockAdjustments).omit({
+  id: true,
+  createdAt: true,
+});
+
+// Currency configuration
+export const SUPPORTED_CURRENCIES = {
+  USD: { symbol: '$', name: 'US Dollar', placement: 'before' },
+  EUR: { symbol: '\u20AC', name: 'Euro', placement: 'before' },
+  GBP: { symbol: '\u00A3', name: 'British Pound', placement: 'before' },
+  AED: { symbol: 'AED', name: 'UAE Dirham', placement: 'before' },
+  SAR: { symbol: 'SAR', name: 'Saudi Riyal', placement: 'before' },
+  EGP: { symbol: 'EGP', name: 'Egyptian Pound', placement: 'before' },
+  CNY: { symbol: '\u00A5', name: 'Chinese Yuan', placement: 'before' },
+  JOD: { symbol: 'JOD', name: 'Jordanian Dinar', placement: 'before' },
+} as const;
+
+export type CurrencyCode = keyof typeof SUPPORTED_CURRENCIES;
+
+export function formatCurrency(amount: number | string, currencyCode: string = 'USD'): string {
+  const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+  const currency = SUPPORTED_CURRENCIES[currencyCode as CurrencyCode];
+  if (!currency) {
+    return `${currencyCode} ${numAmount.toFixed(2)}`;
+  }
+  if (currency.placement === 'before') {
+    return `${currency.symbol}${numAmount.toFixed(2)}`;
+  }
+  return `${numAmount.toFixed(2)} ${currency.symbol}`;
+}
+
 // Types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
@@ -226,6 +344,11 @@ export type InsertActivityLog = z.infer<typeof insertActivityLogSchema>;
 export type ActivityLog = typeof activityLogs.$inferSelect;
 export type InsertPasswordResetToken = z.infer<typeof insertPasswordResetTokenSchema>;
 export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
+export type Customer = typeof customers.$inferSelect;
+export type InsertCustomer = z.infer<typeof insertCustomerSchema>;
+export type StockAdjustment = typeof stockAdjustments.$inferSelect;
+export type InsertStockAdjustment = z.infer<typeof insertStockAdjustmentSchema>;
+export type ProductChange = typeof productChanges.$inferSelect;
 
 // API Response Types
 export type DashboardMetrics = {

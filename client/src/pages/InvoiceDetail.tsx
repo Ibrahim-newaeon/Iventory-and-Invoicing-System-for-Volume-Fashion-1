@@ -73,7 +73,7 @@ export default function InvoiceDetail() {
           variant: "destructive",
         });
         setTimeout(() => {
-          window.location.href = "/api/login";
+          window.location.href = "/";
         }, 500);
         return;
       }
@@ -87,16 +87,11 @@ export default function InvoiceDetail() {
 
   const updateDiscountMutation = useMutation({
     mutationFn: async (discountPercentage: number) => {
-      console.log("Making API request with discount percentage:", discountPercentage, typeof discountPercentage);
-      
       const requestBody = { discountPercentage };
-      console.log("Request body:", requestBody);
-      
       const response = await apiRequest("PUT", `/api/invoices/${id}/discount`, requestBody);
       
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("API error response:", response.status, errorText);
         let errorData;
         try {
           errorData = JSON.parse(errorText);
@@ -119,7 +114,6 @@ export default function InvoiceDetail() {
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/metrics"] });
     },
     onError: (error: any) => {
-      console.error("Discount update error:", error);
       
       if (isUnauthorizedError(error)) {
         toast({
@@ -128,7 +122,7 @@ export default function InvoiceDetail() {
           variant: "destructive",
         });
         setTimeout(() => {
-          window.location.href = "/api/login";
+          window.location.href = "/";
         }, 500);
         return;
       }
@@ -147,7 +141,6 @@ export default function InvoiceDetail() {
           errorMessage = error.message;
         }
       } catch (parseError) {
-        console.error("Error parsing error message:", parseError);
       }
       
       toast({
@@ -159,13 +152,7 @@ export default function InvoiceDetail() {
   });
 
   const onSubmitDiscount = (data: DiscountForm) => {
-    console.log("Form submission data:", data);
-    console.log("discountPercentage type:", typeof data.discountPercentage);
-    console.log("discountPercentage value:", data.discountPercentage);
-    
-    // Ensure it's a number for the API call
     const numericDiscountPercentage = Number(data.discountPercentage);
-    console.log("Converted to number:", numericDiscountPercentage, typeof numericDiscountPercentage);
     
     if (isNaN(numericDiscountPercentage)) {
       toast({
@@ -250,12 +237,48 @@ export default function InvoiceDetail() {
     }).format(typeof amount === 'string' ? parseFloat(amount) : amount);
   };
 
+  const cancelInvoiceMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("PUT", `/api/invoices/${id}/cancel`);
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Invoice cancelled successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: [`/api/invoices/${id}`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/metrics"] });
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: "Failed to cancel invoice",
+        variant: "destructive",
+      });
+    },
+  });
+
   const getStatusBadge = (status: string) => {
-    return status === 'Processed' ? (
-      <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Processed</Badge>
-    ) : (
-      <Badge variant="secondary">Pending</Badge>
-    );
+    if (status === 'Processed') {
+      return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Processed</Badge>;
+    }
+    if (status === 'Cancelled') {
+      return <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Cancelled</Badge>;
+    }
+    return <Badge variant="secondary">Pending</Badge>;
   };
 
   const canProcessInvoice = () => {
@@ -341,14 +364,44 @@ export default function InvoiceDetail() {
             Save as PDF
           </Button>
           {invoice.status === 'Pending' && canProcessInvoice() && (
+            <>
+              <Button
+                onClick={() => updateStatusMutation.mutate('Processed')}
+                disabled={updateStatusMutation.isPending}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+                data-testid="button-process-invoice"
+              >
+                <i className="fas fa-check w-4 h-4 mr-2"></i>
+                {updateStatusMutation.isPending ? "Processing..." : "Mark as Processed"}
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  if (confirm('Are you sure you want to cancel this invoice? This action cannot be undone.')) {
+                    cancelInvoiceMutation.mutate();
+                  }
+                }}
+                disabled={cancelInvoiceMutation.isPending}
+                data-testid="button-cancel-invoice"
+              >
+                <i className="fas fa-ban w-4 h-4 mr-2"></i>
+                {cancelInvoiceMutation.isPending ? "Cancelling..." : "Cancel Invoice"}
+              </Button>
+            </>
+          )}
+          {invoice.status === 'Processed' && canProcessInvoice() && (
             <Button
-              onClick={() => updateStatusMutation.mutate('Processed')}
-              disabled={updateStatusMutation.isPending}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
-              data-testid="button-process-invoice"
+              variant="destructive"
+              onClick={() => {
+                if (confirm('Are you sure you want to cancel this processed invoice? Stock will be restored.')) {
+                  cancelInvoiceMutation.mutate();
+                }
+              }}
+              disabled={cancelInvoiceMutation.isPending}
+              data-testid="button-cancel-invoice"
             >
-              <i className="fas fa-check w-4 h-4 mr-2"></i>
-              {updateStatusMutation.isPending ? "Processing..." : "Mark as Processed"}
+              <i className="fas fa-ban w-4 h-4 mr-2"></i>
+              {cancelInvoiceMutation.isPending ? "Cancelling..." : "Cancel Invoice"}
             </Button>
           )}
         </div>

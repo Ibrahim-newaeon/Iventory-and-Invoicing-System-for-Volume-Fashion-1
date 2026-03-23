@@ -16,7 +16,7 @@ export default function ActivityLogs() {
     endDate: ""
   });
 
-  const { data: logsData, isLoading, error } = useQuery({
+  const { data: logsData, isLoading, error } = useQuery<any>({
     queryKey: ["/api/activity-logs", { page, limit: 50, ...filters }],
   });
 
@@ -59,8 +59,32 @@ export default function ActivityLogs() {
   };
 
   const exportLogs = () => {
-    // Implementation for exporting logs
-    console.log('Exporting logs...');
+    const logs = logsData?.logs;
+    if (!logs || logs.length === 0) {
+      return;
+    }
+
+    const headers = ["Date", "Action", "Module", "User", "IP Address"];
+    const csvRows = [
+      headers.join(","),
+      ...logs.map((log: any) => [
+        `"${new Date(log.createdAt).toLocaleString()}"`,
+        `"${(log.action || "").replace(/"/g, '""')}"`,
+        `"${log.module}"`,
+        `"${log.user?.firstName && log.user?.lastName ? `${log.user.firstName} ${log.user.lastName}` : log.user?.email || 'System'}"`,
+        `"${log.ipAddress || ''}"`,
+      ].join(","))
+    ];
+
+    const blob = new Blob([csvRows.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `activity_logs_${new Date().toISOString().split("T")[0]}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   if (error) {

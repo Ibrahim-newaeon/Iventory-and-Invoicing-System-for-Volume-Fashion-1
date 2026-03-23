@@ -22,6 +22,7 @@ export default function BulkUpload() {
       const response = await fetch("/api/products/bulk-upload", {
         method: "POST",
         body: formData,
+        credentials: "include",
       });
       
       if (!response.ok) {
@@ -50,7 +51,7 @@ export default function BulkUpload() {
           variant: "destructive",
         });
         setTimeout(() => {
-          window.location.href = "/api/login";
+          window.location.href = "/";
         }, 500);
         return;
       }
@@ -129,12 +130,7 @@ export default function BulkUpload() {
     setUploadProgress(0);
 
     try {
-      const text = await selectedFile.text();
-      let products: any[] = [];
-
-      if (selectedFile.name.endsWith('.csv')) {
-        products = parseCSV(text);
-      } else {
+      if (!selectedFile.name.endsWith('.csv')) {
         toast({
           title: "Error",
           description: "Please upload a CSV file",
@@ -144,15 +140,8 @@ export default function BulkUpload() {
         return;
       }
 
-      if (products.length === 0) {
-        toast({
-          title: "Error",
-          description: "No valid products found in the file",
-          variant: "destructive",
-        });
-        setIsProcessing(false);
-        return;
-      }
+      const formData = new FormData();
+      formData.append('csvFile', selectedFile);
 
       // Simulate progress
       const interval = setInterval(() => {
@@ -165,7 +154,7 @@ export default function BulkUpload() {
         });
       }, 200);
 
-      await bulkUploadMutation.mutateAsync(products);
+      await bulkUploadMutation.mutateAsync(formData);
       setUploadProgress(100);
       clearInterval(interval);
 

@@ -4,3 +4,28 @@ dist
 server/public
 vite.config.ts.*
 *.tar.gz
+
+# Environment files
+.env
+.env.*
+.env.local
+!.env.example
+
+# Uploads directory (user content)
+uploads/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS files
+Thumbs.db
+
+# Logs
+*.log
+
+# Local tool config
+.claude/
+.local/

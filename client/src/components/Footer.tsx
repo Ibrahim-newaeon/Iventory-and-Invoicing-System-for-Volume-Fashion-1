@@ -20,7 +20,7 @@ export default function Footer() {
           
           {/* Additional Info */}
           <div className="flex flex-col lg:flex-row items-start lg:items-center space-y-2 lg:space-y-0 lg:space-x-6 text-xs text-muted-foreground">
-            <span>© 2024 Volume Fashion Collection</span>
+            <span>&copy; {new Date().getFullYear()} Volume Fashion Collection</span>
             <span>Fashion Inventory & Invoicing System</span>
           </div>
         </div>

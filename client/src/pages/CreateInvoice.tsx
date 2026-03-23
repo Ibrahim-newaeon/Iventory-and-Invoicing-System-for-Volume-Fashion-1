@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +17,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { BrowserQRCodeReader, BrowserBarcodeReader } from "@zxing/library";
 import Tesseract from "tesseract.js";
+import { SUPPORTED_CURRENCIES, type CurrencyCode } from "@shared/schema";
 
 const createInvoiceSchema = z.object({
   customerName: z.string().min(1, "Customer name is required"),
@@ -23,6 +25,7 @@ const createInvoiceSchema = z.object({
   customerPhone: z.string().min(1, "Phone number is required"),
   customerAddress: z.string().optional(),
   taxRate: z.string().optional(),
+  currency: z.string().default("USD"),
   notes: z.string().optional(),
 });
 
@@ -59,6 +62,7 @@ export default function CreateInvoice() {
       customerPhone: "",
       customerAddress: "",
       taxRate: "8.5",
+      currency: "USD",
       notes: "",
     },
   });
@@ -90,7 +94,7 @@ export default function CreateInvoice() {
           variant: "destructive",
         });
         setTimeout(() => {
-          window.location.href = "/api/login";
+          window.location.href = "/";
         }, 500);
         return;
       }
@@ -215,7 +219,7 @@ export default function CreateInvoice() {
                     img,
                     'eng',
                     {
-                      logger: (m) => console.log('OCR Progress:', m)
+                      logger: () => {}
                     }
                   );
                   
@@ -229,7 +233,7 @@ export default function CreateInvoice() {
                     scanMethod = "OCR";
                   }
                 } catch (ocrError) {
-                  console.error("OCR error:", ocrError);
+                  // OCR failed
                 }
               }
             }
@@ -262,7 +266,6 @@ export default function CreateInvoice() {
               });
             }
           } catch (error) {
-            console.error("Scanning error:", error);
             toast({
               title: "Scanning Failed",
               description: "An error occurred while processing the image.",
@@ -280,7 +283,6 @@ export default function CreateInvoice() {
 
       reader.readAsDataURL(file);
     } catch (error) {
-      console.error("File reading error:", error);
       toast({
         title: "Error",
         description: "Failed to read the image file",
@@ -319,6 +321,7 @@ export default function CreateInvoice() {
       taxRate: (parseFloat(data.taxRate || "8.5") / 100).toFixed(4),
       taxAmount: taxAmount.toFixed(2),
       total: total.toFixed(2),
+      currency: data.currency || "USD",
     };
 
     const itemsData = invoiceItems.map(item => ({
@@ -334,11 +337,14 @@ export default function CreateInvoice() {
     });
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(amount);
+  const selectedCurrency = form.watch("currency") || "USD";
+
+  const formatCurrencyAmount = (amount: number) => {
+    const curr = SUPPORTED_CURRENCIES[selectedCurrency as CurrencyCode];
+    if (!curr) {
+      return `${selectedCurrency} ${amount.toFixed(2)}`;
+    }
+    return `${curr.symbol}${amount.toFixed(2)}`;
   };
 
   return (
@@ -559,7 +565,7 @@ export default function CreateInvoice() {
                                         <div className="flex items-center justify-between pt-1">
                                           <div className="flex items-center gap-2">
                                             <span className="font-semibold text-foreground" data-testid={`product-price-${product.id}`}>
-                                              {formatCurrency(product.price)}
+                                              {formatCurrencyAmount(parseFloat(product.price))}
                                             </span>
                                             <Badge 
                                               variant={product.quantity > 10 ? "secondary" : product.quantity > 0 ? "outline" : "destructive"}
@@ -618,8 +624,8 @@ export default function CreateInvoice() {
                                 data-testid={`input-quantity-${index}`}
                               />
                             </td>
-                            <td className="px-4 py-3 text-sm text-foreground">{formatCurrency(item.unitPrice)}</td>
-                            <td className="px-4 py-3 text-sm font-medium text-foreground">{formatCurrency(item.totalPrice)}</td>
+                            <td className="px-4 py-3 text-sm text-foreground">{formatCurrencyAmount(item.unitPrice)}</td>
+                            <td className="px-4 py-3 text-sm font-medium text-foreground">{formatCurrencyAmount(item.totalPrice)}</td>
                             <td className="px-4 py-3">
                               <Button
                                 type="button"
@@ -650,6 +656,32 @@ export default function CreateInvoice() {
                   <div className="bg-muted rounded-lg p-4 mt-4">
                     <div className="flex justify-between items-start">
                       <div className="w-1/2 space-y-4">
+                        {/* Currency Selector */}
+                        <FormField
+                          control={form.control}
+                          name="currency"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Currency</FormLabel>
+                              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                  <SelectTrigger className="w-48" data-testid="select-currency">
+                                    <SelectValue placeholder="Select currency" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {Object.entries(SUPPORTED_CURRENCIES).map(([code, info]) => (
+                                    <SelectItem key={code} value={code}>
+                                      {info.symbol} {info.name} ({code})
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
                         {/* Tax Rate Input */}
                         <FormField
                           control={form.control}
@@ -658,12 +690,12 @@ export default function CreateInvoice() {
                             <FormItem>
                               <FormLabel>Tax Rate (%)</FormLabel>
                               <FormControl>
-                                <Input 
+                                <Input
                                   type="number"
                                   min="0"
                                   max="50"
                                   step="0.1"
-                                  placeholder="8.5" 
+                                  placeholder="8.5"
                                   {...field}
                                   data-testid="input-tax-rate"
                                   className="w-32"
@@ -679,20 +711,20 @@ export default function CreateInvoice() {
                         <div className="flex justify-between text-sm">
                           <span className="text-muted-foreground">Subtotal:</span>
                           <span className="text-foreground font-medium" data-testid="text-subtotal">
-                            {formatCurrency(subtotal)}
+                            {formatCurrencyAmount(subtotal)}
                           </span>
                         </div>
                         <div className="flex justify-between text-sm">
                           <span className="text-muted-foreground">Tax ({form.watch("taxRate") || "8.5"}%):</span>
                           <span className="text-foreground font-medium" data-testid="text-tax">
-                            {formatCurrency(taxAmount)}
+                            {formatCurrencyAmount(taxAmount)}
                           </span>
                         </div>
                         <div className="border-t border-border pt-2">
                           <div className="flex justify-between text-base font-semibold">
                             <span className="text-foreground">Total:</span>
                             <span className="text-foreground" data-testid="text-total">
-                              {formatCurrency(total)}
+                              {formatCurrencyAmount(total)}
                             </span>
                           </div>
                         </div>

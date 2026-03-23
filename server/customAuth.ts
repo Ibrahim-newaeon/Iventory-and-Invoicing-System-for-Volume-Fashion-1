@@ -8,58 +8,62 @@ import bcrypt from "bcrypt";
 import type { Express, RequestHandler } from "express";
 import { storage } from "./storage";
 import type { User } from "@shared/schema";
+import { logger } from "./logger";
 
 const scryptAsync = promisify(scrypt);
 
-// Hash password using scrypt
+// Hash password using bcrypt (preferred for new passwords)
 export async function hashPassword(password: string): Promise<string> {
-  const salt = randomBytes(16).toString("hex");
-  const buf = (await scryptAsync(password, salt, 64)) as Buffer;
-  return `${buf.toString("hex")}.${salt}`;
+  return bcrypt.hash(password, 12);
 }
 
 // Compare passwords using scrypt or bcrypt
 export async function comparePasswords(supplied: string, stored: string): Promise<boolean> {
   try {
-    // Check if it's a bcrypt hash (starts with $2b$)
-    if (stored.startsWith('$2b$')) {
+    // Check if it's a bcrypt hash (starts with $2b$ or $2a$)
+    if (stored.startsWith('$2b$') || stored.startsWith('$2a$')) {
       return await bcrypt.compare(supplied, stored);
     }
-    
-    // Handle scrypt format
+
+    // Handle legacy scrypt format
     const parts = stored.split(".");
     if (parts.length !== 2) {
       return false;
     }
-    
+
     const [hashed, salt] = parts;
     const hashedBuf = Buffer.from(hashed, "hex");
     const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
     return timingSafeEqual(hashedBuf, suppliedBuf);
   } catch (error) {
-    console.error("Password comparison error:", error);
+    logger.error({ err: error }, "Password comparison error");
     return false;
   }
 }
 
 export function getSession() {
-  const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
+  if (!process.env.SESSION_SECRET) {
+    throw new Error("SESSION_SECRET environment variable is required");
+  }
+
+  const sessionTtlSeconds = 7 * 24 * 60 * 60; // 1 week in seconds
   const pgStore = connectPg(session);
   const sessionStore = new pgStore({
     conString: process.env.DATABASE_URL,
     createTableIfMissing: false,
-    ttl: sessionTtl,
+    ttl: sessionTtlSeconds, // connect-pg-simple expects seconds
     tableName: "sessions",
   });
   return session({
-    secret: process.env.SESSION_SECRET || "fallback-secret-key",
+    secret: process.env.SESSION_SECRET,
     store: sessionStore,
     resave: false,
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: false, // Set to true in production with HTTPS
-      maxAge: sessionTtl,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: sessionTtlSeconds * 1000, // express-session cookie expects milliseconds
     },
   });
 }
@@ -97,7 +101,7 @@ export async function setupCustomAuth(app: Express) {
 
           return done(null, user);
         } catch (error) {
-          console.error("Authentication error:", error);
+          logger.error({ err: error }, "Authentication error");
           return done(error);
         }
       }
@@ -114,9 +118,12 @@ export async function setupCustomAuth(app: Express) {
       if (!user) {
         return done(null, false);
       }
+      if (!user.isActive) {
+        return done(null, false);
+      }
       done(null, user);
     } catch (error) {
-      console.error("User deserialization error:", error);
+      logger.error({ err: error }, "User deserialization error");
       done(null, false);
     }
   });

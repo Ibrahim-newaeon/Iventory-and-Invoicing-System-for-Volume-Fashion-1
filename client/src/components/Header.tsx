@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
@@ -8,6 +9,8 @@ interface HeaderProps {
 }
 
 export default function Header({ title, onMenuClick }: HeaderProps) {
+  const [, navigate] = useLocation();
+  const [searchQuery, setSearchQuery] = useState("");
   const [isDark, setIsDark] = useState(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('theme') === 'dark';
@@ -15,16 +18,9 @@ export default function Header({ title, onMenuClick }: HeaderProps) {
     return false;
   });
 
-  const toggleTheme = () => {
-    const newTheme = !isDark;
-    setIsDark(newTheme);
-    
-    if (newTheme) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
+  const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && searchQuery.trim()) {
+      navigate(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
     }
   };
 
@@ -33,9 +29,9 @@ export default function Header({ title, onMenuClick }: HeaderProps) {
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           {/* Mobile Menu Button */}
-          <Button 
-            variant="ghost" 
-            size="icon" 
+          <Button
+            variant="ghost"
+            size="icon"
             className="lg:hidden"
             onClick={onMenuClick}
             data-testid="button-mobile-menu"
@@ -44,34 +40,27 @@ export default function Header({ title, onMenuClick }: HeaderProps) {
           </Button>
           <h2 className="text-lg lg:text-xl font-semibold text-foreground">{title}</h2>
         </div>
-        
+
         <div className="flex items-center space-x-4">
           {/* Search Bar - Hidden on mobile */}
           <div className="relative hidden md:block">
             <Input
-              type="text" 
-              placeholder="Search products..." 
+              type="text"
+              placeholder="Search products..."
               className="w-40 lg:w-64 pl-10"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={handleSearch}
               data-testid="input-search"
             />
-            <img 
-              src="/attached_assets/image_1757965266687.png" 
-              alt="Search" 
-              className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4"
-            />
+            <i className="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground"></i>
           </div>
 
-          {/* Notifications */}
-          <Button variant="ghost" size="icon" className="relative" data-testid="button-notifications">
-            <i className="fas fa-bell w-5 h-5"></i>
-            <span className="absolute -top-1 -right-1 w-3 h-3 bg-destructive rounded-full text-xs"></span>
-          </Button>
-
-          {/* Theme Toggle - Enhanced with clear labels */}
+          {/* Theme Toggle */}
           <div className="flex items-center bg-muted rounded-lg p-1">
-            <Button 
-              variant={isDark ? "ghost" : "default"} 
-              size="sm" 
+            <Button
+              variant={isDark ? "ghost" : "default"}
+              size="sm"
               onClick={() => {
                 if (isDark) {
                   setIsDark(false);
@@ -80,8 +69,8 @@ export default function Header({ title, onMenuClick }: HeaderProps) {
                 }
               }}
               className={`px-3 py-2 rounded-md transition-all duration-200 ${
-                !isDark 
-                  ? 'bg-background text-foreground shadow-sm border' 
+                !isDark
+                  ? 'bg-background text-foreground shadow-sm border'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
               data-testid="button-light-mode"
@@ -89,10 +78,10 @@ export default function Header({ title, onMenuClick }: HeaderProps) {
               <i className="fas fa-sun w-4 h-4 mr-2"></i>
               <span className="text-sm font-medium">Light</span>
             </Button>
-            
-            <Button 
-              variant={isDark ? "default" : "ghost"} 
-              size="sm" 
+
+            <Button
+              variant={isDark ? "default" : "ghost"}
+              size="sm"
               onClick={() => {
                 if (!isDark) {
                   setIsDark(true);
@@ -101,8 +90,8 @@ export default function Header({ title, onMenuClick }: HeaderProps) {
                 }
               }}
               className={`px-3 py-2 rounded-md transition-all duration-200 ml-1 ${
-                isDark 
-                  ? 'bg-background text-foreground shadow-sm border' 
+                isDark
+                  ? 'bg-background text-foreground shadow-sm border'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
               data-testid="button-dark-mode"
@@ -113,8 +102,8 @@ export default function Header({ title, onMenuClick }: HeaderProps) {
           </div>
 
           {/* Logout Button */}
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             size="sm"
             onClick={async () => {
               try {
@@ -125,8 +114,7 @@ export default function Header({ title, onMenuClick }: HeaderProps) {
                 if (response.ok) {
                   window.location.href = "/";
                 }
-              } catch (error) {
-                console.error("Logout error:", error);
+              } catch {
                 window.location.href = "/";
               }
             }}

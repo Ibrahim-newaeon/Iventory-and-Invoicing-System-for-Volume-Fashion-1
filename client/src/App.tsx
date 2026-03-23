@@ -8,6 +8,7 @@ import LoginPage from "@/pages/LoginPage";
 import ForgotPassword from "@/pages/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
 import Layout from "@/components/Layout";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -34,6 +35,8 @@ function Router() {
           <Route path="/create-invoice" component={() => <Layout page="create-invoice" />} />
           <Route path="/users" component={() => <Layout page="users" />} />
           <Route path="/activity-logs" component={() => <Layout page="activity-logs" />} />
+          <Route path="/reports" component={() => <Layout page="reports" />} />
+          <Route path="/customers" component={() => <Layout page="customers" />} />
         </>
       )}
       <Route component={NotFound} />
@@ -43,12 +46,14 @@ function Router() {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Router />
-      </TooltipProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Router />
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 

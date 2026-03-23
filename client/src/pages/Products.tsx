@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -23,12 +23,23 @@ import type { ProductsResponse, Product } from "@shared/schema";
 export default function Products() {
   const { toast } = useToast();
   const [page, setPage] = useState(1);
+  const urlSearch = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('search') || '' : '';
   const [filters, setFilters] = useState({
-    search: "",
+    search: urlSearch,
     category: "",
     size: "",
     stockLevel: ""
   });
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const search = params.get('search');
+    if (search) {
+      setFilters(prev => ({ ...prev, search }));
+      // Clear the URL param after reading it
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [bulkUploadFile, setBulkUploadFile] = useState<File | null>(null);
 
@@ -85,7 +96,7 @@ export default function Products() {
           variant: "destructive",
         });
         setTimeout(() => {
-          window.location.href = "/api/login";
+          window.location.href = "/";
         }, 500);
         return;
       }
@@ -121,7 +132,7 @@ export default function Products() {
           variant: "destructive",
         });
         setTimeout(() => {
-          window.location.href = "/api/login";
+          window.location.href = "/";
         }, 500);
         return;
       }
@@ -220,8 +231,7 @@ export default function Products() {
         description: `Exported ${data.products.length} products to CSV`,
       });
 
-    } catch (error) {
-      console.error('Export error:', error);
+    } catch {
       toast({
         title: "Export Failed", 
         description: "Failed to export products. Please try again.",

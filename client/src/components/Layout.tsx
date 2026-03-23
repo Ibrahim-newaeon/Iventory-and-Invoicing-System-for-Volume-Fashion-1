@@ -12,6 +12,8 @@ import CreateInvoice from "@/pages/CreateInvoice";
 import InvoiceDetail from "@/pages/InvoiceDetail";
 import UserManagement from "@/pages/UserManagement";
 import ActivityLogs from "@/pages/ActivityLogs";
+import Reports from "@/pages/Reports";
+import Customers from "@/pages/Customers";
 import ProtectedRoute from "@/components/ProtectedRoute";
 
 interface LayoutProps {
@@ -29,6 +31,8 @@ const pageComponents = {
   "create-invoice": CreateInvoice,
   users: UserManagement,
   "activity-logs": ActivityLogs,
+  reports: Reports,
+  customers: Customers,
 };
 
 const pageTitles = {
@@ -42,6 +46,8 @@ const pageTitles = {
   "create-invoice": 'Create Invoice',
   users: 'User Management',
   "activity-logs": 'Activity Logs',
+  reports: 'Reports & Analytics',
+  customers: 'Customers',
 };
 
 export default function Layout({ page }: LayoutProps) {

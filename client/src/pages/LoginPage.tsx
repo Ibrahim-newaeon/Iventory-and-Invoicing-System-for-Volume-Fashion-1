@@ -152,19 +152,6 @@ export default function LoginPage() {
               </form>
             </Form>
 
-            <div className="mt-6 p-4 bg-blue-900/30 border border-blue-500/50 rounded-lg">
-              <div className="flex items-start gap-3">
-                <i className="fas fa-info-circle text-blue-400 mt-0.5"></i>
-                <div>
-                  <p className="text-sm font-semibold text-blue-300 mb-2">Default Admin Credentials</p>
-                  <div className="text-sm text-gray-200 space-y-1">
-                    <p><span className="text-gray-400">Username:</span> <span className="font-mono text-blue-300">abd.rabo.940@gmail.com</span></p>
-                    <p><span className="text-gray-400">Password:</span> <span className="font-mono text-blue-300">New@2025</span></p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
             <div className="mt-6 p-4 bg-gray-700 rounded-lg text-left">
               <p className="text-sm font-medium text-gray-200 mb-2">Volume Fashion Collection</p>
               <div className="text-xs text-gray-300 space-y-1">

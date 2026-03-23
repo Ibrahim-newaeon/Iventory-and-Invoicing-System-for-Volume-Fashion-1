@@ -23,7 +23,7 @@ export default function Invoices() {
     customerName: ""
   });
 
-  const { data: invoicesData, isLoading, error } = useQuery({
+  const { data: invoicesData, isLoading, error } = useQuery<any>({
     queryKey: ["/api/invoices", { page, limit: 20, ...filters }],
   });
 
@@ -48,7 +48,7 @@ export default function Invoices() {
           variant: "destructive",
         });
         setTimeout(() => {
-          window.location.href = "/api/login";
+          window.location.href = "/";
         }, 500);
         return;
       }
@@ -79,7 +79,7 @@ export default function Invoices() {
           variant: "destructive",
         });
         setTimeout(() => {
-          window.location.href = "/api/login";
+          window.location.href = "/";
         }, 500);
         return;
       }
@@ -110,7 +110,7 @@ export default function Invoices() {
           variant: "destructive",
         });
         setTimeout(() => {
-          window.location.href = "/api/login";
+          window.location.href = "/";
         }, 500);
         return;
       }
@@ -138,9 +138,45 @@ export default function Invoices() {
     }).format(typeof amount === 'string' ? parseFloat(amount) : amount);
   };
 
+  const cancelInvoiceMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await apiRequest("PUT", `/api/invoices/${id}/cancel`);
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Invoice cancelled successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/metrics"] });
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: "Failed to cancel invoice",
+        variant: "destructive",
+      });
+    },
+  });
+
   const getStatusBadge = (status: string) => {
     if (status === 'Processed') {
       return <Badge className="bg-accent/10 text-accent">Processed</Badge>;
+    }
+    if (status === 'Cancelled') {
+      return <Badge className="bg-red-100 text-red-800">Cancelled</Badge>;
     }
     return <Badge className="bg-amber-100 text-amber-800">Pending</Badge>;
   };
@@ -197,6 +233,7 @@ export default function Invoices() {
               <SelectItem value="all">All Status</SelectItem>
               <SelectItem value="Pending">Pending</SelectItem>
               <SelectItem value="Processed">Processed</SelectItem>
+              <SelectItem value="Cancelled">Cancelled</SelectItem>
             </SelectContent>
           </Select>
           
@@ -302,9 +339,9 @@ export default function Invoices() {
                         {getStatusBadge(invoice.status)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm space-x-2">
-                        <Link href={`/invoices/${invoice.id}`}>
-                          <Button 
-                            variant="ghost" 
+                        <Link href={`/invoices/${invoice.id}`} onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+                          <Button
+                            variant="ghost"
                             size="icon"
                             data-testid={`button-view-${invoice.id}`}
                           >
@@ -314,30 +351,30 @@ export default function Invoices() {
                         
                         {invoice.status === 'Processed' ? (
                           <>
-                            <Button 
-                              variant="ghost" 
+                            <Button
+                              variant="ghost"
                               size="icon"
-                              onClick={() => downloadPDF(invoice.id, invoice.invoiceNumber)}
+                              onClick={(e) => { e.stopPropagation(); downloadPDF(invoice.id, invoice.invoiceNumber); }}
                               data-testid={`button-download-${invoice.id}`}
                             >
                               <i className="fas fa-download w-4 h-4"></i>
                             </Button>
-                            
-                            <Button 
-                              variant="ghost" 
+
+                            <Button
+                              variant="ghost"
                               size="icon"
-                              onClick={() => sendEmailMutation.mutate(invoice.id)}
+                              onClick={(e) => { e.stopPropagation(); sendEmailMutation.mutate(invoice.id); }}
                               disabled={sendEmailMutation.isPending}
                               title="Send via Email"
                               data-testid={`button-email-${invoice.id}`}
                             >
                               <i className="fas fa-envelope w-4 h-4"></i>
                             </Button>
-                            
-                            <Button 
-                              variant="ghost" 
+
+                            <Button
+                              variant="ghost"
                               size="icon"
-                              onClick={() => sendWhatsAppMutation.mutate(invoice.id)}
+                              onClick={(e) => { e.stopPropagation(); sendWhatsAppMutation.mutate(invoice.id); }}
                               disabled={sendWhatsAppMutation.isPending}
                               title="Send via WhatsApp"
                               data-testid={`button-whatsapp-${invoice.id}`}
@@ -345,17 +382,30 @@ export default function Invoices() {
                               <i className="fab fa-whatsapp w-4 h-4"></i>
                             </Button>
                           </>
-                        ) : canProcessInvoice() ? (
-                          <Button 
-                            variant="ghost" 
-                            size="icon"
-                            onClick={() => updateStatusMutation.mutate({ id: invoice.id, status: 'Processed' })}
-                            disabled={updateStatusMutation.isPending}
-                            title="Mark as Processed"
-                            data-testid={`button-process-${invoice.id}`}
-                          >
-                            <i className="fas fa-check w-4 h-4"></i>
-                          </Button>
+                        ) : invoice.status === 'Pending' && canProcessInvoice() ? (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={(e) => { e.stopPropagation(); updateStatusMutation.mutate({ id: invoice.id, status: 'Processed' }); }}
+                              disabled={updateStatusMutation.isPending}
+                              title="Mark as Processed"
+                              data-testid={`button-process-${invoice.id}`}
+                            >
+                              <i className="fas fa-check w-4 h-4"></i>
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={(e) => { e.stopPropagation(); if (confirm('Are you sure you want to cancel this invoice?')) cancelInvoiceMutation.mutate(invoice.id); }}
+                              disabled={cancelInvoiceMutation.isPending}
+                              title="Cancel Invoice"
+                              className="text-destructive hover:text-destructive"
+                              data-testid={`button-cancel-${invoice.id}`}
+                            >
+                              <i className="fas fa-ban w-4 h-4"></i>
+                            </Button>
+                          </>
                         ) : null}
                       </td>
                     </tr>
