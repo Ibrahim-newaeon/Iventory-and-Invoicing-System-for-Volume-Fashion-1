@@ -50,7 +50,7 @@ export function getSession() {
   const pgStore = connectPg(session);
   const sessionStore = new pgStore({
     conString: process.env.DATABASE_URL,
-    createTableIfMissing: false,
+    createTableIfMissing: true,
     ttl: sessionTtlSeconds, // connect-pg-simple expects seconds
     tableName: "sessions",
   });
@@ -61,7 +61,7 @@ export function getSession() {
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: process.env.APP_URL?.startsWith("https://") || false,
       sameSite: "lax",
       maxAge: sessionTtlSeconds * 1000, // express-session cookie expects milliseconds
     },

@@ -7,7 +7,7 @@ import { isAuthenticated } from "../customAuth";
 import { requireRole } from "../rbac";
 import { insertInvoiceSchema, insertInvoiceItemSchema, formatCurrency, SUPPORTED_CURRENCIES } from "@shared/schema";
 import { logger } from "../logger";
-import { messagingRateLimit } from "../index";
+import { messagingRateLimit } from "../rateLimits";
 import { getEmailTransporter } from "./auth";
 
 const router = Router();

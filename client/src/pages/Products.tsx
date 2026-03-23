@@ -4,7 +4,6 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Link } from "wouter";
-import clickHereImage from "@assets/vecteezy_click-here-button-web-template-speech-bubble-banner-label_21386117-removebg-preview_1757278134780.png";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -431,25 +430,18 @@ export default function Products() {
                   )}
                   {product.qrCodeUrl && (
                     <div className="absolute top-2 right-2">
-                      {/* Click Here Indicator */}
-                      <div className="absolute -top-6 -left-8 z-10">
-                        <img 
-                          src={clickHereImage} 
-                          alt="Click here to view QR code"
-                          className="w-20 h-12 object-contain"
-                        />
-                      </div>
                       <Dialog>
                         <DialogTrigger asChild>
                           <Button
-                            variant="ghost"
-                            size="icon"
-                            className="bg-background/80 hover:bg-background transition-all hover:scale-110"
+                            variant="secondary"
+                            size="sm"
+                            className="bg-yellow-500 hover:bg-yellow-600 text-black font-semibold shadow-md"
                             data-testid={`button-qr-${product.id}`}
                           >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="#fbbf24" className="text-yellow-400">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="mr-1.5">
                               <path d="M3 11H5V13H3V11M11 5H13V9H11V5M9 11H13V15H9V11M15 3H21V9H15V3M17 5H19V7H17V5M15 15H17V17H15V15M17 17H19V19H17V17M19 19H21V21H19V19M3 3H9V9H3V3M5 5H7V7H5V5M3 15H9V21H3V15M5 17H7V19H5V17Z"/>
                             </svg>
+                            QR Code
                           </Button>
                         </DialogTrigger>
                       <DialogContent className="sm:max-w-md">

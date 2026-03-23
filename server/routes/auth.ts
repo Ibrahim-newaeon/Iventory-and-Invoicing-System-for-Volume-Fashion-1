@@ -5,7 +5,7 @@ import nodemailer from "nodemailer";
 import { storage } from "../storage";
 import { hashPassword } from "../customAuth";
 import { logger } from "../logger";
-import { authRateLimit, passwordResetRateLimit } from "../index";
+import { authRateLimit, passwordResetRateLimit } from "../rateLimits";
 
 const router = Router();
 

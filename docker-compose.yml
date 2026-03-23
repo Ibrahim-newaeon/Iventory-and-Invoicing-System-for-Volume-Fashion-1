@@ -1,0 +1,35 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: volume_fashion
+      POSTGRES_PASSWORD: volume_fashion_pass
+      POSTGRES_DB: volume_fashion
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U volume_fashion"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      DATABASE_URL: postgresql://volume_fashion:volume_fashion_pass@db:5432/volume_fashion
+      SESSION_SECRET: 831a862e18e7f061b22e29d93a24736aad7b50074c71789dd46ede340cb30257e24b34e019ead3cf3098d5a11b311873371378abe9b74c3eab72c3b9e2db67cc
+      NODE_ENV: production
+      APP_URL: http://localhost:5000
+      PORT: "5000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:
