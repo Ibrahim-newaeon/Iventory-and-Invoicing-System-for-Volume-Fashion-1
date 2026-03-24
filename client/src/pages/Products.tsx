@@ -420,17 +420,28 @@ export default function Products() {
             {productsData?.products?.map((product: any) => (
               <Card key={product.id} className="overflow-hidden hover:shadow-lg transition-shadow" data-testid={`card-product-${product.id}`}>
                 <div className="relative">
-                  {product.imageUrl ? (
-                    <img 
-                      src={product.imageUrl} 
-                      alt={product.productName} 
-                      className="w-full h-48 object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-48 bg-muted flex items-center justify-center">
-                      <i className="fas fa-image text-muted-foreground text-2xl"></i>
-                    </div>
-                  )}
+                  {(() => {
+                    const displayImage = product.imageUrls?.[0] || product.imageUrl;
+                    const imageCount = product.imageUrls?.length || (product.imageUrl ? 1 : 0);
+                    return displayImage ? (
+                      <>
+                        <img
+                          src={displayImage}
+                          alt={product.productName}
+                          className="w-full h-48 object-cover"
+                        />
+                        {imageCount > 1 && (
+                          <div className="absolute top-2 left-2 bg-black/60 text-white text-xs px-2 py-0.5 rounded-full">
+                            <i className="fas fa-images mr-1"></i>{imageCount}
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="w-full h-48 bg-muted flex items-center justify-center">
+                        <i className="fas fa-image text-muted-foreground text-2xl"></i>
+                      </div>
+                    );
+                  })()}
                   {product.qrCodeUrl && (
                     <div className="absolute top-2 right-2">
                       <Dialog>

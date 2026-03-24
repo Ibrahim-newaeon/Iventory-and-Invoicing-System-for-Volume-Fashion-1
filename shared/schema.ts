@@ -90,6 +90,7 @@ export const products = pgTable("products", {
   manufacturer: varchar("manufacturer"),
   manufacturerId: varchar("manufacturer_id").references(() => manufacturers.id),
   imageUrl: varchar("image_url"),
+  imageUrls: jsonb("image_urls").$type<string[]>(),
   qrCodeUrl: varchar("qr_code_url"),
   category: varchar("category"),
   description: text("description"),

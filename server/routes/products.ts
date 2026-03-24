@@ -394,19 +394,51 @@ router.post("/api/products/bulk", isAuthenticated, requireRole("Admin", "Manager
   }
 });
 
-// PUT /api/products/:id/image — accepts multipart file upload
-router.put("/api/products/:id/image", isAuthenticated, requireRole("Admin", "Manager", "Staff"), imageUpload.single("image"), async (req: any, res) => {
+// PUT /api/products/:id/image — accepts multipart file upload (up to 10 images)
+router.put("/api/products/:id/image", isAuthenticated, requireRole("Admin", "Manager", "Staff"), imageUpload.array("images", 10), async (req: any, res) => {
   try {
     const productId = req.params.id;
+    const files = req.files as Express.Multer.File[];
 
-    if (!req.file) {
+    // Support both single "image" field (legacy) and multiple "images" field
+    if ((!files || files.length === 0) && !req.file) {
       return res.status(400).json({ message: "No image file provided" });
     }
 
-    // Save image file to disk
-    const ext = req.file.originalname.split(".").pop() || "png";
-    const imageUrl = await saveProductImage(productId, req.file.buffer, ext);
-    await storage.updateProduct(productId, { imageUrl });
+    const filesToProcess = files && files.length > 0 ? files : [req.file];
+
+    if (filesToProcess.length > 10) {
+      return res.status(400).json({ message: "Maximum 10 images allowed per product" });
+    }
+
+    // Get existing product to preserve any existing images
+    const existingProduct = await storage.getProduct(productId);
+    const existingImageUrls: string[] = existingProduct?.imageUrls || [];
+
+    // Check total image count
+    if (existingImageUrls.length + filesToProcess.length > 10) {
+      return res.status(400).json({
+        message: `Cannot upload ${filesToProcess.length} images. Product already has ${existingImageUrls.length} images (max 10).`
+      });
+    }
+
+    // Save all image files to disk
+    const newImageUrls: string[] = [];
+    const startIndex = existingImageUrls.length;
+    for (let i = 0; i < filesToProcess.length; i++) {
+      const file = filesToProcess[i];
+      const ext = file.originalname.split(".").pop() || "png";
+      const imageUrl = await saveProductImage(productId, file.buffer, ext, startIndex + i);
+      newImageUrls.push(imageUrl);
+    }
+
+    const allImageUrls = [...existingImageUrls, ...newImageUrls];
+    const primaryImageUrl = allImageUrls[0];
+
+    await storage.updateProduct(productId, {
+      imageUrl: primaryImageUrl,
+      imageUrls: allImageUrls,
+    } as any);
 
     // Generate QR code
     const appUrl = process.env.APP_URL || "http://localhost:5000";
@@ -420,12 +452,47 @@ router.put("/api/products/:id/image", isAuthenticated, requireRole("Admin", "Man
     const qrCodeUrl = await saveQRCode(productId, qrCodeBuffer);
     const updatedProduct = await storage.updateProductQRCode(productId, qrCodeUrl);
 
-    await logActivity(req, `Updated image for product "${updatedProduct.productName}"`, "Products", productId, updatedProduct.productName);
+    await logActivity(req, `Updated images for product "${updatedProduct.productName}"`, "Products", productId, updatedProduct.productName);
 
     res.json({ product: updatedProduct });
   } catch (error) {
     logger.error({ err: error }, "Error updating product image");
     res.status(500).json({ message: "Failed to update product image" });
+  }
+});
+
+// DELETE /api/products/:id/images/:index — remove a specific image
+router.delete("/api/products/:id/images/:index", isAuthenticated, requireRole("Admin", "Manager", "Staff"), async (req: any, res) => {
+  try {
+    const productId = req.params.id;
+    const imageIndex = parseInt(req.params.index);
+
+    const product = await storage.getProduct(productId);
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    const imageUrls: string[] = product.imageUrls || [];
+    if (imageIndex < 0 || imageIndex >= imageUrls.length) {
+      return res.status(400).json({ message: "Invalid image index" });
+    }
+
+    imageUrls.splice(imageIndex, 1);
+    const primaryImageUrl = imageUrls.length > 0 ? imageUrls[0] : null;
+
+    await storage.updateProduct(productId, {
+      imageUrl: primaryImageUrl,
+      imageUrls: imageUrls.length > 0 ? imageUrls : null,
+    } as any);
+
+    const updatedProduct = await storage.getProduct(productId);
+
+    await logActivity(req, `Removed image from product "${product.productName}"`, "Products", productId, product.productName);
+
+    res.json({ product: updatedProduct });
+  } catch (error) {
+    logger.error({ err: error }, "Error removing product image");
+    res.status(500).json({ message: "Failed to remove product image" });
   }
 });
 

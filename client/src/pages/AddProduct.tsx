@@ -39,8 +39,8 @@ interface Manufacturer {
 export default function AddProduct() {
   const { toast } = useToast();
   const [, navigate] = useLocation();
-  const [selectedImage, setSelectedImage] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string>("");
+  const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [sizeBreakdown, setSizeBreakdown] = useState<Record<string, number>>({});
   const [showNewManufacturerDialog, setShowNewManufacturerDialog] = useState(false);
   const [newManufacturerName, setNewManufacturerName] = useState("");
@@ -86,9 +86,9 @@ export default function AddProduct() {
   });
 
   const updateProductImageMutation = useMutation({
-    mutationFn: async ({ productId, file }: { productId: string; file: File }) => {
+    mutationFn: async ({ productId, files }: { productId: string; files: File[] }) => {
       const formData = new FormData();
-      formData.append("image", file);
+      files.forEach((file) => formData.append("images", file));
       const response = await fetch(`/api/products/${productId}/image`, {
         method: "PUT",
         body: formData,
@@ -101,7 +101,7 @@ export default function AddProduct() {
       return response.json();
     },
     onSuccess: () => {
-      toast({ title: "Success", description: "Product image and QR code generated successfully" });
+      toast({ title: "Success", description: "Product images and QR code generated successfully" });
     },
     onError: (error) => {
       if (isUnauthorizedError(error)) {
@@ -109,7 +109,7 @@ export default function AddProduct() {
         setTimeout(() => { window.location.href = "/"; }, 500);
         return;
       }
-      toast({ title: "Warning", description: "Product created but failed to update image", variant: "destructive" });
+      toast({ title: "Warning", description: "Product created but failed to upload images", variant: "destructive" });
     },
   });
 
@@ -132,15 +132,35 @@ export default function AddProduct() {
   });
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      toast({ title: "Error", description: "Image must be under 5MB", variant: "destructive" });
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    const totalImages = selectedImages.length + files.length;
+    if (totalImages > 10) {
+      toast({ title: "Error", description: `Maximum 10 images allowed. You can add ${10 - selectedImages.length} more.`, variant: "destructive" });
       return;
     }
-    setSelectedImage(file);
-    setImagePreview(URL.createObjectURL(file));
-    toast({ title: "Success", description: "Image selected" });
+
+    for (const file of files) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast({ title: "Error", description: `"${file.name}" exceeds 5MB limit`, variant: "destructive" });
+        return;
+      }
+    }
+
+    const newImages = [...selectedImages, ...files];
+    const newPreviews = [...imagePreviews, ...files.map(f => URL.createObjectURL(f))];
+    setSelectedImages(newImages);
+    setImagePreviews(newPreviews);
+    toast({ title: "Success", description: `${files.length} image(s) added (${newImages.length}/10)` });
+    // Reset the input so the same file(s) can be re-selected
+    e.target.value = "";
+  };
+
+  const removeImage = (index: number) => {
+    URL.revokeObjectURL(imagePreviews[index]);
+    setSelectedImages(prev => prev.filter((_, i) => i !== index));
+    setImagePreviews(prev => prev.filter((_, i) => i !== index));
   };
 
   const updateSizeQty = (size: string, qty: number) => {
@@ -159,8 +179,8 @@ export default function AddProduct() {
   const activeSizes = Object.keys(sizeBreakdown).filter(s => sizeBreakdown[s] > 0);
 
   const onSubmit = async (data: AddProductForm) => {
-    if (!selectedImage) {
-      toast({ title: "Image Required", description: "Please upload a product image before saving", variant: "destructive" });
+    if (selectedImages.length === 0) {
+      toast({ title: "Image Required", description: "Please upload at least one product image before saving", variant: "destructive" });
       return;
     }
 
@@ -181,8 +201,8 @@ export default function AddProduct() {
 
       const product = await createProductMutation.mutateAsync(productData);
 
-      if (selectedImage && product.id) {
-        updateProductImageMutation.mutate({ productId: product.id, file: selectedImage });
+      if (selectedImages.length > 0 && product.id) {
+        updateProductImageMutation.mutate({ productId: product.id, files: selectedImages });
       }
     } catch (error) {
       // handled by mutation
@@ -533,21 +553,40 @@ export default function AddProduct() {
               <div className="bg-background/50 rounded-xl border p-6">
                 <div className="mb-4">
                   <label className="text-lg font-medium text-foreground">
-                    Product Image <span className="text-red-500">*</span>: Click to upload product image
+                    Product Images <span className="text-red-500">*</span>: Upload up to 10 images
                   </label>
                   <p className="text-sm text-muted-foreground mt-1">
-                    JPG, PNG, or WebP up to 5MB
+                    JPG, PNG, or WebP up to 5MB each ({selectedImages.length}/10 selected)
                   </p>
                 </div>
-                <Input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  onChange={handleImageSelect}
-                  className="w-full"
-                />
-                {imagePreview && (
-                  <div className="mt-4">
-                    <img src={imagePreview} alt="Preview" className="w-32 h-32 object-cover rounded-lg border" />
+                {selectedImages.length < 10 && (
+                  <Input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    multiple
+                    onChange={handleImageSelect}
+                    className="w-full"
+                  />
+                )}
+                {imagePreviews.length > 0 && (
+                  <div className="mt-4 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+                    {imagePreviews.map((preview, index) => (
+                      <div key={index} className="relative group">
+                        <img src={preview} alt={`Preview ${index + 1}`} className="w-full h-24 object-cover rounded-lg border" />
+                        <button
+                          type="button"
+                          onClick={() => removeImage(index)}
+                          className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <i className="fas fa-times"></i>
+                        </button>
+                        {index === 0 && (
+                          <span className="absolute bottom-1 left-1 text-[10px] bg-primary text-primary-foreground px-1.5 py-0.5 rounded font-medium">
+                            Main
+                          </span>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
@@ -565,7 +604,7 @@ export default function AddProduct() {
                 </Button>
                 <Button
                   type="submit"
-                  disabled={createProductMutation.isPending || !selectedImage}
+                  disabled={createProductMutation.isPending || selectedImages.length === 0}
                   className="h-12 px-8 text-base bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg"
                 >
                   {createProductMutation.isPending ? (

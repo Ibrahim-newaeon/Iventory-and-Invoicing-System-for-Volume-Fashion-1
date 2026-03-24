@@ -80,10 +80,11 @@ export async function saveQRCode(productId: string, buffer: Buffer): Promise<str
   return saveFile("qr-codes", `${productId}.png`, buffer);
 }
 
-export async function saveProductImage(productId: string, buffer: Buffer, extension: string = "png"): Promise<string> {
+export async function saveProductImage(productId: string, buffer: Buffer, extension: string = "png", index?: number): Promise<string> {
   const ext = extension.toLowerCase().replace(/^\./, "");
   if (!ALLOWED_IMAGE_EXTENSIONS.has(ext)) {
     throw new Error(`File extension not allowed: ${extension}. Allowed: ${Array.from(ALLOWED_IMAGE_EXTENSIONS).join(", ")}`);
   }
-  return saveFile("images", `${productId}.${ext}`, buffer);
+  const fileName = index != null ? `${productId}_${index}.${ext}` : `${productId}.${ext}`;
+  return saveFile("images", fileName, buffer);
 }

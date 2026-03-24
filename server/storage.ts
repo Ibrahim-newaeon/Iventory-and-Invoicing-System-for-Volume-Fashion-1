@@ -228,7 +228,7 @@ export class DatabaseStorage implements IStorage {
 
   // Product operations
   async createProduct(product: InsertProduct): Promise<Product> {
-    const [newProduct] = await db.insert(products).values(product).returning();
+    const [newProduct] = await db.insert(products).values(product as any).returning();
     return newProduct;
   }
 
@@ -315,7 +315,7 @@ export class DatabaseStorage implements IStorage {
 
     const [updatedProduct] = await db
       .update(products)
-      .set({ ...product, updatedAt: new Date() })
+      .set({ ...product, updatedAt: new Date() } as any)
       .where(eq(products.id, id))
       .returning();
     return updatedProduct;
@@ -335,7 +335,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createBulkProducts(productList: InsertProduct[]): Promise<Product[]> {
-    return await db.insert(products).values(productList).returning();
+    return await db.insert(products).values(productList as any).returning();
   }
 
   async getLowStockProducts(threshold: number = 5): Promise<Product[]> {
