@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Midas Furniture — Q1 2026 Digital Intelligence</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#0B1C2E;--bg2:#0F2540;--bg3:#142B48;--card:#0D2035;
+  --gold:#F5A623;--teal:#00C9B1;--red:#FF4D5E;--blue:#4A8FD9;
+  --text:#E8EDF5;--muted:rgba(232,237,245,0.5);--border:rgba(255,255,255,0.08);
+  --radius:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh}
+/* Header */
+.header{background:var(--bg2);border-bottom:1px solid var(--border);padding:20px 40px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.logo{display:flex;align-items:center;gap:14px}
+.logo-mark{width:40px;height:40px;background:var(--gold);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;color:#0B1C2E}
+.logo-text h1{font-size:17px;font-weight:700;color:var(--text)}
+.logo-text p{font-size:11px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+.hdr-badges{display:flex;gap:8px;align-items:center}
+.badge{font-size:10px;font-weight:600;padding:5px 12px;border-radius:100px;letter-spacing:.04em}
+.b-gold{background:rgba(245,166,35,.15);border:1px solid rgba(245,166,35,.3);color:var(--gold)}
+.b-teal{background:rgba(0,201,177,.12);border:1px solid rgba(0,201,177,.25);color:var(--teal)}
+.b-red{background:rgba(255,77,94,.12);border:1px solid rgba(255,77,94,.25);color:var(--red)}
+/* Country nav */
+.country-nav{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 40px;display:flex;gap:4px}
+.cnav-btn{padding:14px 20px;font-size:13px;font-weight:600;color:var(--muted);background:none;border:none;cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;letter-spacing:.03em;display:flex;align-items:center;gap:7px}
+.cnav-btn:hover{color:var(--text)}
+.cnav-btn.active{color:var(--gold);border-bottom-color:var(--gold)}
+.flag{font-size:16px}
+/* Main layout */
+.main{padding:32px 40px;max-width:1400px;margin:0 auto}
+/* Section title */
+.sec{margin-bottom:32px}
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.sec-title{font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:8px}
+.sec-title::before{content:'';width:3px;height:14px;background:var(--gold);border-radius:2px}
+/* KPI row */
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:14px}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px}
+.kpi-label{font-size:10px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px}
+.kpi-val{font-size:28px;font-weight:800;line-height:1;letter-spacing:-.02em}
+.kpi-sub{font-size:11px;color:var(--muted);margin-top:5px;display:flex;align-items:center;gap:5px}
+.delta-up{color:var(--teal)}
+.delta-dn{color:var(--red)}
+/* 2-col grid */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;margin-bottom:18px}
+/* Card */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px}
+.card-title{font-size:12px;font-weight:600;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:16px;display:flex;align-items:center;gap:6px}
+.card-title .ct-dot{width:6px;height:6px;border-radius:50%}
+canvas{display:block;max-width:100%}
+/* Table */
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead th{text-align:left;padding:8px 12px;font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);white-space:nowrap}
+tbody tr{border-bottom:1px solid rgba(255,255,255,0.04)}
+tbody tr:hover{background:rgba(255,255,255,0.03)}
+tbody td{padding:9px 12px;color:var(--text)}
+.num{text-align:right;font-variant-numeric:tabular-nums;font-family:monospace;font-size:11px}
+.pill-rank{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;background:rgba(245,166,35,.15);border:1px solid rgba(245,166,35,.25);color:var(--gold)}
+.trend-up{color:var(--teal);font-weight:600;font-size:11px}
+.trend-dn{color:var(--red);font-weight:600;font-size:11px}
+.trend-flat{color:var(--muted);font-size:11px}
+/* Channel bar */
+.ch-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.ch-name{font-size:11px;color:var(--muted);width:118px;flex-shrink:0;text-align:right}
+.ch-bar-wrap{flex:1;background:rgba(255,255,255,0.06);border-radius:3px;height:6px;overflow:hidden}
+.ch-bar{height:100%;border-radius:3px;transition:width .4s}
+.ch-val{font-size:11px;font-variant-numeric:tabular-nums;font-family:monospace;width:56px;flex-shrink:0;text-align:right;color:var(--text)}
+.ch-drop{font-size:10px;font-weight:700;width:52px;flex-shrink:0;text-align:right}
+.ch-drop.dn{color:var(--red)}
+.ch-drop.up{color:var(--teal)}
+/* Insight cards */
+.insight-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.insight{background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:14px 16px}
+.insight.gold-border{border-left:3px solid var(--gold)}
+.insight.teal-border{border-left:3px solid var(--teal)}
+.insight.red-border{border-left:3px solid var(--red)}
+.insight-title{font-size:12.5px;font-weight:600;color:var(--text);margin-bottom:4px;direction:rtl}
+.insight-body{font-size:11.5px;color:var(--muted);line-height:1.6;direction:rtl}
+/* WhatsApp section */
+.wa-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.wa-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px}
+.wa-flag{font-size:22px;margin-bottom:10px}
+.wa-country{font-size:13px;font-weight:600;color:var(--text);margin-bottom:12px}
+.wa-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)}
+.wa-row:last-child{border-bottom:none}
+.wa-metric{font-size:11px;color:var(--muted)}
+.wa-months{display:flex;gap:16px}
+.wa-val{text-align:right}
+.wa-month{font-size:9px;color:var(--muted);text-align:center;display:block}
+.wa-num{font-size:13px;font-weight:700;color:var(--text);display:block;text-align:center}
+/* Competitor table */
+.comp-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.comp-row:last-child{border-bottom:none}
+.comp-rank{font-size:10px;font-weight:700;color:var(--gold);width:24px;flex-shrink:0}
+.comp-name{font-size:12px;flex:1;direction:rtl;text-align:right}
+.comp-bar-wrap{width:120px;flex-shrink:0}
+.comp-bar{height:5px;border-radius:3px;background:linear-gradient(to right,var(--teal),rgba(0,201,177,.3))}
+.comp-val{font-size:11px;font-family:monospace;color:var(--muted);width:52px;text-align:right;flex-shrink:0}
+/* Country page hidden */
+.country-page{display:none}
+.country-page.active{display:block}
+/* divline */
+.divline{height:1px;background:linear-gradient(to right,rgba(245,166,35,.4),rgba(0,201,177,.2),transparent);margin:28px 0}
+/* Responsive */
+@media(max-width:900px){.kpi-row{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}.grid3{grid-template-columns:1fr}.wa-cards{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="logo">
+    <div class="logo-mark">M</div>
+    <div class="logo-text">
+      <h1>Midas Furniture</h1>
+      <p>Q1 2026 Digital Intelligence</p>
+    </div>
+  </div>
+  <div class="hdr-badges">
+    <span class="badge b-gold">Jan – Mar 2026</span>
+    <span class="badge b-teal">3 Markets</span>
+    <span class="badge b-red">–72% Traffic Drop</span>
+  </div>
+</div>
+
+<!-- Country Nav -->
+<div class="country-nav">
+  <button class="cnav-btn active" onclick="showPage('all')">🌍 All Markets</button>
+  <button class="cnav-btn" onclick="showPage('ksa')"><span class="flag">🇸🇦</span> Saudi Arabia</button>
+  <button class="cnav-btn" onclick="showPage('kw')"><span class="flag">🇰🇼</span> Kuwait</button>
+  <button class="cnav-btn" onclick="showPage('qa')"><span class="flag">🇶🇦</span> Qatar</button>
+</div>
+
+<div class="main">
+
+<!-- ==================== ALL MARKETS ==================== -->
+<div class="country-page active" id="page-all">
+
+  <!-- Top KPIs -->
+  <div class="kpi-row">
+    <div class="kpi">
+      <div class="kpi-label">Peak Sessions (Feb)</div>
+      <div class="kpi-val" style="color:var(--blue)">239,221</div>
+      <div class="kpi-sub">Combined KSA + KW + QA</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">March Sessions</div>
+      <div class="kpi-val" style="color:var(--red)">66,641</div>
+      <div class="kpi-sub delta-dn">↓ –72.1% from February</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">WhatsApp Events</div>
+      <div class="kpi-val" style="color:var(--teal)">700</div>
+      <div class="kpi-sub">Feb peak across all markets</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Markets Tracked</div>
+      <div class="kpi-val" style="color:var(--gold)">3</div>
+      <div class="kpi-sub">KSA · Kuwait · Qatar</div>
+    </div>
+  </div>
+
+  <!-- Traffic Chart -->
+  <div class="sec">
+    <div class="sec-hdr"><div class="sec-title">Traffic Overview — All Markets (New Aeon GA4)</div></div>
+    <div class="card">
+      <div class="card-title"><span class="ct-dot" style="background:var(--blue)"></span>Monthly Sessions by Country</div>
+      <canvas id="chartAllTraffic" height="80"></canvas>
+    </div>
+  </div>
+
+  <!-- Channel breakdown -->
+  <div class="sec">
+    <div class="sec-hdr"><div class="sec-title">Channel Performance — February Peak &amp; Feb→Mar Drop</div></div>
+    <div class="grid3">
+      <!-- KSA -->
+      <div class="card">
+        <div class="card-title"><span class="ct-dot" style="background:var(--gold)"></span>🇸🇦 KSA — Feb: 124,990 sessions</div>
+        <div style="font-size:9px;color:var(--muted);margin-bottom:10px;display:flex;justify-content:flex-end;gap:20px;padding-right:4px"><span>Feb sessions</span><span>Feb→Mar drop</span></div>
+        <div id="ch-ksa"></div>
+      </div>
+      <!-- Kuwait -->
+      <div class="card">
+        <div class="card-title"><span class="ct-dot" style="background:var(--teal)"></span>🇰🇼 Kuwait — Feb: 71,616 sessions</div>
+        <div style="font-size:9px;color:var(--muted);margin-bottom:10px;display:flex;justify-content:flex-end;gap:20px;padding-right:4px"><span>Feb sessions</span><span>Feb→Mar drop</span></div>
+        <div id="ch-kw"></div>
+      </div>
+      <!-- Qatar -->
+      <div class="card">
+        <div class="card-title"><span class="ct-dot" style="background:var(--red)"></span>🇶🇦 Qatar — Feb: 42,615 sessions</div>
+        <div style="font-size:9px;color:var(--muted);margin-bottom:10px;display:flex;justify-content:flex-end;gap:20px;padding-right:4px"><span>Feb sessions</span><span>Feb→Mar drop</span></div>
+        <div id="ch-qa"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WhatsApp -->
+  <div class="sec">
+    <div class="sec-hdr"><div class="sec-title">WhatsApp Events &amp; Purchases</div></div>
+    <div class="wa-cards">
+      <div class="wa-card">
+        <div class="wa-flag">🇸🇦</div>
+        <div class="wa-country">Saudi Arabia</div>
+        <div class="wa-row">
+          <div class="wa-metric">WhatsApp Events</div>
+          <div class="wa-months">
+            <div class="wa-val"><span class="wa-month">Jan</span><span class="wa-num">357</span></div>
+            <div class="wa-val"><span class="wa-month">Feb</span><span class="wa-num" style="color:var(--gold)">400</span></div>
+            <div class="wa-val"><span class="wa-month">Mar</span><span class="wa-num" style="color:var(--red)">215</span></div>
+          </div>
+        </div>
+        <div class="wa-row">
+          <div class="wa-metric">Purchases</div>
+          <div class="wa-months">
+            <div class="wa-val"><span class="wa-month">Jan</span><span class="wa-num">94</span></div>
+            <div class="wa-val"><span class="wa-month">Feb</span><span class="wa-num" style="color:var(--gold)">144</span></div>
+            <div class="wa-val"><span class="wa-month">Mar</span><span class="wa-num" style="color:var(--red)">73</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="wa-card">
+        <div class="wa-flag">🇰🇼</div>
+        <div class="wa-country">Kuwait</div>
+        <div class="wa-row">
+          <div class="wa-metric">WhatsApp Events</div>
+          <div class="wa-months">
+            <div class="wa-val"><span class="wa-month">Jan</span><span class="wa-num">134</span></div>
+            <div class="wa-val"><span class="wa-month">Feb</span><span class="wa-num" style="color:var(--gold)">145</span></div>
+            <div class="wa-val"><span class="wa-month">Mar</span><span class="wa-num" style="color:var(--teal)">95</span></div>
+          </div>
+        </div>
+        <div class="wa-row">
+          <div class="wa-metric">Purchases</div>
+          <div class="wa-months">
+            <div class="wa-val"><span class="wa-month">Jan</span><span class="wa-num">60</span></div>
+            <div class="wa-val"><span class="wa-month">Feb</span><span class="wa-num" style="color:var(--gold)">128</span></div>
+            <div class="wa-val"><span class="wa-month">Mar</span><span class="wa-num" style="color:var(--teal)">1,187</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="wa-card">
+        <div class="wa-flag">🇶🇦</div>
+        <div class="wa-country">Qatar</div>
+        <div class="wa-row">
+          <div class="wa-metric">WhatsApp Events</div>
+          <div class="wa-months">
+            <div class="wa-val"><span class="wa-month">Jan</span><span class="wa-num">106</span></div>
+            <div class="wa-val"><span class="wa-month">Feb</span><span class="wa-num" style="color:var(--gold)">155</span></div>
+            <div class="wa-val"><span class="wa-month">Mar</span><span class="wa-num" style="color:var(--red)">92</span></div>
+          </div>
+        </div>
+        <div class="wa-row">
+          <div class="wa-metric">Purchases</div>
+          <div class="wa-months">
+            <div class="wa-val"><span class="wa-month">Jan</span><span class="wa-num">13</span></div>
+            <div class="wa-val"><span class="wa-month">Feb</span><span class="wa-num" style="color:var(--gold)">42</span></div>
+            <div class="wa-val"><span class="wa-month">Mar</span><span class="wa-num" style="color:var(--red)">20</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Market Insights -->
+  <div class="sec">
+    <div class="sec-hdr"><div class="sec-title">Market Insights — Trends Summary</div></div>
+    <div class="insight-grid">
+      <div class="insight gold-border">
+        <div class="insight-title">طفرات كبرى في العلامات التجارية — KSA</div>
+        <div class="insight-body">السعودية: السوق الأكثر نشاطاً وتنافساً في قطاع المفروشات والأثاث، والجمهور يتفاعل بقوة مع الحملات الإعلانية.</div>
+      </div>
+      <div class="insight teal-border">
+        <div class="insight-title">السوق السعودي للأثاث في مارس نشط جداً وتنافسي</div>
+        <div class="insight-body">التوجه العام يميل نحو العلامات التجارية الكبرى التي تقدم خصومات.</div>
+      </div>
+      <div class="insight red-border">
+        <div class="insight-title">تراجع عام وشبه شامل في قطاع الأثاث — Kuwait</div>
+        <div class="insight-body">الكويت: شهدت أكبر حالة تراجع عام في البحث، باستثناء "ميداس وإيكيا" اللتين استحوذتا على الاهتمام بالكامل.</div>
+      </div>
+      <div class="insight teal-border">
+        <div class="insight-title">العميل في قطر يتوجه مباشرة للعلامة التجارية</div>
+        <div class="insight-body">قطر: العميل حالياً لا يبحث بشكل عشوائي عن "أثاث"، بل يتوجه مباشرة للعلامة التجارية التي تقدم عرضاً مغرياً أو إعلاناً ظاهراً أمامه.</div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /all -->
+
+<!-- ==================== KSA ==================== -->
+<div class="country-page" id="page-ksa">
+  <div class="kpi-row">
+    <div class="kpi"><div class="kpi-label">Jan Sessions</div><div class="kpi-val" style="color:var(--blue)">46,325</div><div class="kpi-sub">New Aeon GA4</div></div>
+    <div class="kpi"><div class="kpi-label">Feb Sessions</div><div class="kpi-val" style="color:var(--gold)">124,990</div><div class="kpi-sub delta-up">↑ +170% from Jan</div></div>
+    <div class="kpi"><div class="kpi-label">Mar Sessions</div><div class="kpi-val" style="color:var(--red)">28,809</div><div class="kpi-sub delta-dn">↓ –77% from Feb</div></div>
+    <div class="kpi"><div class="kpi-label">Market Rank</div><div class="kpi-val" style="color:var(--teal)">#6</div><div class="kpi-sub">Google Auction Insights</div></div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title"><span class="ct-dot" style="background:var(--gold)"></span>Monthly Traffic Trend</div>
+      <canvas id="chartKsaTraffic" height="140"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="ct-dot" style="background:var(--teal)"></span>Channel Mix — Feb 2026</div>
+      <canvas id="chartKsaChannels" height="140"></canvas>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title"><span class="ct-dot" style="background:var(--blue)"></span>Top Keywords — Search Volume (Feb 2026)</div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>#</th><th>Keyword</th><th class="num">Oct</th><th class="num">Nov</th><th class="num">Dec</th><th class="num">Jan</th><th class="num">Feb</th></tr></thead>
+          <tbody id="ksa-kw-body"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="ct-dot" style="background:var(--red)"></span>Competitor Brand Searches (Feb 2026)</div>
+      <div id="ksa-comp"></div>
+    </div>
+  </div>
+</div><!-- /ksa -->
+
+<!-- ==================== KUWAIT ==================== -->
+<div class="country-page" id="page-kw">
+  <div class="kpi-row">
+    <div class="kpi"><div class="kpi-label">Jan Sessions</div><div class="kpi-val" style="color:var(--blue)">43,992</div><div class="kpi-sub">New Aeon GA4</div></div>
+    <div class="kpi"><div class="kpi-label">Feb Sessions</div><div class="kpi-val" style="color:var(--gold)">71,616</div><div class="kpi-sub delta-up">↑ +63% from Jan</div></div>
+    <div class="kpi"><div class="kpi-label">Mar Sessions</div><div class="kpi-val" style="color:var(--teal)">25,057</div><div class="kpi-sub delta-dn">↓ –65% — Most Resilient</div></div>
+    <div class="kpi"><div class="kpi-label">Market Rank</div><div class="kpi-val" style="color:var(--teal)">#5</div><div class="kpi-sub">Breakout Trend Status ⭐</div></div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title"><span class="ct-dot" style="background:var(--teal)"></span>Monthly Traffic Trend</div>
+      <canvas id="chartKwTraffic" height="140"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="ct-dot" style="background:var(--gold)"></span>Channel Mix — Feb 2026</div>
+      <canvas id="chartKwChannels" height="140"></canvas>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title"><span class="ct-dot" style="background:var(--blue)"></span>Top Keywords — Search Volume (Feb 2026)</div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>#</th><th>Keyword</th><th class="num">Oct</th><th class="num">Nov</th><th class="num">Dec</th><th class="num">Jan</th><th class="num">Feb</th></tr></thead>
+          <tbody id="kw-kw-body"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="ct-dot" style="background:var(--red)"></span>Competitor Brand Searches (Feb 2026)</div>
+      <div id="kw-comp"></div>
+    </div>
+  </div>
+</div><!-- /kw -->
+
+<!-- ==================== QATAR ==================== -->
+<div class="country-page" id="page-qa">
+  <div class="kpi-row">
+    <div class="kpi"><div class="kpi-label">Jan Sessions</div><div class="kpi-val" style="color:var(--blue)">24,549</div><div class="kpi-sub">New Aeon GA4</div></div>
+    <div class="kpi"><div class="kpi-label">Feb Sessions</div><div class="kpi-val" style="color:var(--gold)">42,615</div><div class="kpi-sub delta-up">↑ +74% from Jan</div></div>
+    <div class="kpi"><div class="kpi-label">Mar Sessions</div><div class="kpi-val" style="color:var(--red)">12,775</div><div class="kpi-sub delta-dn">↓ –70% from Feb</div></div>
+    <div class="kpi"><div class="kpi-label">Market Rank</div><div class="kpi-val" style="color:var(--teal)">#4</div><div class="kpi-sub">Bilingual market required</div></div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title"><span class="ct-dot" style="background:var(--red)"></span>Monthly Traffic Trend</div>
+      <canvas id="chartQaTraffic" height="140"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="ct-dot" style="background:var(--gold)"></span>Channel Mix — Feb 2026</div>
+      <canvas id="chartQaChannels" height="140"></canvas>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title"><span class="ct-dot" style="background:var(--blue)"></span>Keywords — Arabic &amp; English (Feb 2026)</div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>#</th><th>Keyword</th><th class="num">Oct</th><th class="num">Nov</th><th class="num">Dec</th><th class="num">Jan</th><th class="num">Feb</th></tr></thead>
+          <tbody id="qa-kw-body"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="ct-dot" style="background:var(--red)"></span>Competitor Brand Searches (Feb 2026)</div>
+      <div id="qa-comp"></div>
+    </div>
+  </div>
+</div><!-- /qa -->
+
+</div><!-- /main -->
+
+<script>
+// ─── DATA ───────────────────────────────────────────────────────────────────
+const MONTHS = ['Jan 2026','Feb 2026','Mar 2026'];
+
+// Traffic (New Aeon GA4)
+const traffic = {
+  ksa: [46325, 124990, 28809],
+  kw:  [43992,  71616, 25057],
+  qa:  [24549,  42615, 12775]
+};
+
+// Channels (New Aeon, Feb 2026 = peak, drop = Feb→Mar %)
+const channels = {
+  ksa: [
+    {name:'Paid Search',    val:44916, col:'#4A8FD9', drop:-93.2},
+    {name:'Paid Social',    val:16234, col:'#00C9B1', drop:-97.1},
+    {name:'Organic Search', val:23356, col:'#F5A623', drop:-40.9},
+    {name:'Direct',         val:20529, col:'#7C5CBF', drop:-69.5},
+    {name:'Organic Social', val:8172,  col:'#56CFE1', drop:-76.7},
+    {name:'Referral',       val:3141,  col:'#A29BFE', drop:-94.6},
+    {name:'Paid Video',     val:955,   col:'#FF9F43', drop:-81.3},
+    {name:'Cross-network',  val:945,   col:'#FF4D5E', drop:-95.3}
+  ],
+  kw: [
+    {name:'Paid Search',    val:30423, col:'#4A8FD9', drop:-93.1},
+    {name:'Organic Search', val:13810, col:'#F5A623', drop:-27.0},
+    {name:'Direct',         val:12024, col:'#7C5CBF', drop:-60.6},
+    {name:'Paid Social',    val:5052,  col:'#00C9B1', drop:-99.7},
+    {name:'Organic Social', val:5381,  col:'#56CFE1', drop:-24.2},
+    {name:'Paid Video',     val:2068,  col:'#FF9F43', drop:-98.8},
+    {name:'Referral',       val:355,   col:'#A29BFE', drop:+276.1},
+    {name:'Unassigned',     val:1356,  col:'#636E72', drop:+95.4}
+  ],
+  qa: [
+    {name:'Paid Search',    val:17643, col:'#4A8FD9', drop:-84.1},
+    {name:'Organic Search', val:10236, col:'#F5A623', drop:-38.6},
+    {name:'Direct',         val:6995,  col:'#7C5CBF', drop:-76.3},
+    {name:'Paid Social',    val:2471,  col:'#00C9B1', drop:-99.9},
+    {name:'Paid Other',     val:2672,  col:'#FF9F43', drop:-86.1},
+    {name:'Organic Social', val:830,   col:'#56CFE1', drop:-34.9},
+    {name:'Unassigned',     val:983,   col:'#636E72', drop:+8.2},
+    {name:'Cross-network',  val:461,   col:'#FF4D5E', drop:-99.3}
+  ]
+};
+
+// Keywords
+const kwData = {
+  ksa: [
+    {kw:'اثاث',      oct:450000,nov:301000,dec:74000, jan:90500, feb:74000},
+    {kw:'كنب',       oct:74000, nov:60500, dec:74000, jan:74000, feb:74000},
+    {kw:'كراسي',     oct:49500, nov:40500, dec:40500, jan:49500, feb:40500},
+    {kw:'كرسي استرخاء',oct:49500,nov:40500,dec:49500,jan:40500,feb:40500},
+    {kw:'غرف نوم',   oct:40500, nov:40500, dec:40500, jan:40500, feb:33100},
+    {kw:'طاولة قهوة',oct:22200, nov:22200, dec:22200, jan:27100, feb:27100},
+    {kw:'كرسي مكتب', oct:22200, nov:18100, dec:18100, jan:18100, feb:14800},
+    {kw:'مراتب',     oct:18100, nov:18100, dec:18100, jan:18100, feb:18100},
+    {kw:'كراسي طاولة طعام',oct:8100,nov:6600,dec:8100,jan:12100,feb:14800},
+    {kw:'فرشات',     oct:6600,  nov:6600,  dec:8100,  jan:8100,  feb:8100}
+  ],
+  kw: [
+    {kw:'كراسي',    oct:5400,nov:4400,dec:4400,jan:4400,feb:4400},
+    {kw:'اثاث',     oct:1600,nov:1600,dec:1300,jan:1300,feb:1000},
+    {kw:'غرف نوم',  oct:1300,nov:880, dec:880, jan:1000,feb:720},
+    {kw:'كرسي مكتب',oct:1300,nov:1000,dec:1000,jan:1000,feb:720},
+    {kw:'كرسي استرخاء',oct:880,nov:880,dec:880,jan:880,feb:720},
+    {kw:'كنب',      oct:590, nov:480, dec:480, jan:590, feb:480},
+    {kw:'طاولة قهوة',oct:590,nov:590, dec:590, jan:720, feb:720},
+    {kw:'مفروشات',  oct:590, nov:590, dec:590, jan:480, feb:480},
+    {kw:'كراسي طاولة طعام',oct:320,nov:320,dec:390,jan:590,feb:880},
+    {kw:'مراتب',    oct:260, nov:260, dec:320, jan:260, feb:260}
+  ],
+  qa: [
+    {kw:'كراسي',    oct:1000,nov:1000,dec:880, jan:880, feb:880},
+    {kw:'اثاث',     oct:880, nov:880, dec:390, jan:590, feb:590},
+    {kw:'مفروشات',  oct:880, nov:880, dec:590, jan:880, feb:720},
+    {kw:'sofa',     oct:1600,nov:2400,dec:2400,jan:2400,feb:2400},
+    {kw:'furniture',oct:1600,nov:1600,dec:1600,jan:1600,feb:1600},
+    {kw:'tables',   oct:1600,nov:1900,dec:1900,jan:1900,feb:1900},
+    {kw:'beds',     oct:1600,nov:1600,dec:1600,jan:1600,feb:1600},
+    {kw:'dining table',oct:720,nov:590,dec:720,jan:720,feb:880},
+    {kw:'mirror',   oct:1900,nov:1600,dec:1600,jan:1600,feb:1300},
+    {kw:'wardrobe', oct:1300,nov:1300,dec:1300,jan:1300,feb:1300}
+  ]
+};
+
+// Competitors
+const compData = {
+  ksa: [
+    {name:'ايكيا',     oct:673000,feb:673000},
+    {name:'هوم سنتر',  oct:450000,feb:550000},
+    {name:'ابيات',     oct:165000,feb:301000},
+    {name:'مفروشات الرقيب',oct:90500,feb:74000},
+    {name:'اشلي',      oct:60500, feb:74000},
+    {name:'ميداس',     oct:49500, feb:60500},
+    {name:'الرقيب',    oct:49500, feb:60500},
+    {name:'سيتي دبليو',oct:40500, feb:60500}
+  ],
+  kw: [
+    {name:'ايكيا',       oct:60500,feb:60500},
+    {name:'هوم سنتر',    oct:33100,feb:40500},
+    {name:'ابيات',       oct:27100,feb:49500},
+    {name:'صفاة هوم',    oct:27100,feb:40500},
+    {name:'بنتا للاثاث', oct:8100, feb:4400},
+    {name:'ميداس',       oct:6600, feb:8100},
+    {name:'صفاة الغانم', oct:4400, feb:5400},
+    {name:'قرطبة للاثاث',oct:1600, feb:2400}
+  ],
+  qa: [
+    {name:'انصار جاليري',oct:40500,feb:33100},
+    {name:'ايكيا',       oct:14800,feb:18100},
+    {name:'هومسنتر',     oct:9900, feb:14800},
+    {name:'ميداس',       oct:2400, feb:3600},
+    {name:'نابكو',       oct:480,  feb:480},
+    {name:'الكاري',      oct:390,  feb:480},
+    {name:'موبيليا قطر', oct:320,  feb:260},
+    {name:'مفروشات ديانا',oct:260, feb:260}
+  ]
+};
+
+// ─── CHART CONFIG ────────────────────────────────────────────────────────────
+Chart.defaults.color = 'rgba(232,237,245,0.5)';
+Chart.defaults.borderColor = 'rgba(255,255,255,0.06)';
+Chart.defaults.font.family = '-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';
+Chart.defaults.font.size = 11;
+
+function mkLine(id, datasets, labels){
+  return new Chart(document.getElementById(id), {
+    type:'line',
+    data:{labels:labels||MONTHS, datasets},
+    options:{
+      responsive:true,
+      plugins:{legend:{display:datasets.length>1,labels:{boxWidth:10,padding:12}}},
+      scales:{
+        x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'rgba(232,237,245,0.45)'}},
+        y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'rgba(232,237,245,0.45)',callback:v=>v>=1000?Math.round(v/1000)+'K':v}}
+      },
+      tension:.4,
+      pointRadius:5,pointHoverRadius:8
+    }
+  });
+}
+
+function mkDoughnut(id, labels, data, colors){
+  return new Chart(document.getElementById(id), {
+    type:'doughnut',
+    data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:2,borderColor:'#0B1C2E'}]},
+    options:{
+      responsive:true,
+      plugins:{legend:{position:'right',labels:{boxWidth:10,padding:8,font:{size:10}}}},
+      cutout:'65%'
+    }
+  });
+}
+
+// ─── CHANNEL BARS ────────────────────────────────────────────────────────────
+function renderChBars(elId, data){
+  const sorted = [...data].sort((a,b)=>b.val-a.val);
+  const el = document.getElementById(elId);
+  el.innerHTML = sorted.map(d=>{
+    const dropClass = d.drop >= 0 ? 'up' : 'dn';
+    const dropStr  = d.drop >= 0 ? `+${d.drop.toFixed(1)}%` : `${d.drop.toFixed(1)}%`;
+    const valFmt   = d.val >= 1000 ? (d.val/1000).toFixed(1)+'K' : d.val;
+    return`<div class="ch-row">
+      <div class="ch-name">${d.name}</div>
+      <div class="ch-bar-wrap"><div class="ch-bar" style="width:${Math.round(d.val/sorted[0].val*100)}%;background:${d.col}"></div></div>
+      <div class="ch-val">${valFmt}</div>
+      <div class="ch-drop ${dropClass}">${dropStr}</div>
+    </div>`;
+  }).join('');
+}
+
+// ─── KEYWORD TABLES ──────────────────────────────────────────────────────────
+function renderKwTable(bodyId, data){
+  const body = document.getElementById(bodyId);
+  body.innerHTML = data.map((r,i)=>{
+    const trend = r.feb > r.oct ? `<span class="trend-up">↑</span>` : r.feb < r.oct ? `<span class="trend-dn">↓</span>` : `<span class="trend-flat">–</span>`;
+    const fmt = v=>v>=1000?(v/1000).toFixed(0)+'K':v;
+    return`<tr>
+      <td>${i<3?`<span class="pill-rank">#${i+1}</span>`:i+1}</td>
+      <td style="direction:rtl;text-align:right">${r.kw} ${trend}</td>
+      <td class="num">${fmt(r.oct)}</td>
+      <td class="num">${fmt(r.nov)}</td>
+      <td class="num">${fmt(r.dec)}</td>
+      <td class="num">${fmt(r.jan)}</td>
+      <td class="num" style="color:${r.feb>=r.oct?'var(--teal)':'var(--red)'}">${fmt(r.feb)}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ─── COMPETITOR BARS ─────────────────────────────────────────────────────────
+function renderComp(elId, data){
+  const max = Math.max(...data.map(d=>d.feb));
+  const el = document.getElementById(elId);
+  el.innerHTML = data.map((d,i)=>{
+    const pct = Math.round(d.feb/max*100);
+    const growth = ((d.feb-d.oct)/d.oct*100).toFixed(0);
+    const gClass = growth>0?'trend-up':'trend-dn';
+    const gStr = growth>0?`+${growth}%`:`${growth}%`;
+    const isMidas = d.name.includes('ميداس');
+    const fmt = v=>v>=1000?(v/1000).toFixed(0)+'K':v;
+    return`<div class="comp-row" style="${isMidas?'background:rgba(245,166,35,.05);border-radius:6px;padding:7px 6px':''}">
+      <div class="comp-rank">${i<3?`#${i+1}`:`${i+1}`}</div>
+      <div class="comp-name">${d.name}${isMidas?' ⭐':''}</div>
+      <div class="comp-bar-wrap"><div class="comp-bar" style="width:${pct}%;background:${isMidas?'linear-gradient(to right,var(--gold),rgba(245,166,35,.3))':'linear-gradient(to right,var(--teal),rgba(0,201,177,.3))'}"></div></div>
+      <div class="comp-val" style="color:var(--text)">${fmt(d.feb)}</div>
+      <span class="${gClass}" style="font-size:10px;width:44px;text-align:right;flex-shrink:0">${gStr}</span>
+    </div>`;
+  }).join('');
+}
+
+// ─── INIT ────────────────────────────────────────────────────────────────────
+// All markets chart
+mkLine('chartAllTraffic', [
+  {label:'🇸🇦 KSA',   data:traffic.ksa, borderColor:'#F5A623', backgroundColor:'rgba(245,166,35,.08)', fill:true, borderWidth:2},
+  {label:'🇰🇼 Kuwait',data:traffic.kw,  borderColor:'#00C9B1', backgroundColor:'rgba(0,201,177,.06)',  fill:true, borderWidth:2},
+  {label:'🇶🇦 Qatar', data:traffic.qa,  borderColor:'#FF4D5E', backgroundColor:'rgba(255,77,94,.06)',  fill:true, borderWidth:2}
+]);
+
+// Channel bars - all markets
+renderChBars('ch-ksa', channels.ksa);
+renderChBars('ch-kw',  channels.kw);
+renderChBars('ch-qa',  channels.qa);
+
+// KSA
+mkLine('chartKsaTraffic',[
+  {label:'KSA Sessions',data:traffic.ksa,borderColor:'#F5A623',backgroundColor:'rgba(245,166,35,.1)',fill:true,borderWidth:2.5}
+]);
+mkDoughnut('chartKsaChannels',
+  channels.ksa.map(c=>c.name),
+  channels.ksa.map(c=>c.val),
+  channels.ksa.map(c=>c.col)
+);
+renderKwTable('ksa-kw-body', kwData.ksa);
+renderComp('ksa-comp', compData.ksa);
+
+// Kuwait
+mkLine('chartKwTraffic',[
+  {label:'Kuwait Sessions',data:traffic.kw,borderColor:'#00C9B1',backgroundColor:'rgba(0,201,177,.1)',fill:true,borderWidth:2.5}
+]);
+mkDoughnut('chartKwChannels',
+  channels.kw.map(c=>c.name),
+  channels.kw.map(c=>c.val),
+  channels.kw.map(c=>c.col)
+);
+renderKwTable('kw-kw-body', kwData.kw);
+renderComp('kw-comp', compData.kw);
+
+// Qatar
+mkLine('chartQaTraffic',[
+  {label:'Qatar Sessions',data:traffic.qa,borderColor:'#FF4D5E',backgroundColor:'rgba(255,77,94,.1)',fill:true,borderWidth:2.5}
+]);
+mkDoughnut('chartQaChannels',
+  channels.qa.map(c=>c.name),
+  channels.qa.map(c=>c.val),
+  channels.qa.map(c=>c.col)
+);
+renderKwTable('qa-kw-body', kwData.qa);
+renderComp('qa-comp', compData.qa);
+
+// ─── NAV ─────────────────────────────────────────────────────────────────────
+function showPage(id){
+  document.querySelectorAll('.country-page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.cnav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  event.currentTarget.classList.add('active');
+}
+</script>
+</body>
+</html>
